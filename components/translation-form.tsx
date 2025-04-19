@@ -13,7 +13,6 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Card, CardContent } from "@/components/ui/card"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { Progress } from "@/components/ui/progress"
-import { chunkJSON, mergeJSONChunks } from "@/utils/chunking"
 
 const SAMPLE_JSON = {
   homepage: {
@@ -57,10 +56,9 @@ export default function TranslationForm() {
   const [translatedJson, setTranslatedJson] = useState("")
   const [isLoading, setIsLoading] = useState(false)
   const [status, setStatus] = useState<{ type: "success" | "error"; message: string } | null>(null)
-
-  // New state variables for chunking and progress
   const [progress, setProgress] = useState(0)
   const [showProgress, setShowProgress] = useState(false)
+  const [pollingId, setPollingId] = useState<NodeJS.Timeout | null>(null)
 
   const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
@@ -111,68 +109,38 @@ export default function TranslationForm() {
     }
 
     setIsLoading(true)
+    setShowProgress(true)
 
     try {
-      // Check if the JSON is large (more than 50 keys at the top level or nested)
-      const jsonSize = Object.keys(jsonData).length
-      const isLargeJSON = jsonSize > 50
+      // Start a progress simulation for better UX
+      startProgressSimulation()
 
-      if (isLargeJSON) {
-        // Use chunking for large JSON files
-        setShowProgress(true)
-        const chunks = chunkJSON(jsonData)
-        const translatedChunks = []
+      // Make the API request to our Next.js API route
+      const response = await axios.post(
+        "/api/translate",
+        {
+          jsonData,
+          sourceLanguage,
+          targetLanguage,
+          apiKey,
+        },
+        {
+          // Set a long timeout for large translations
+          timeout: 3600000, // 1 hour
+        },
+      )
 
-        for (let i = 0; i < chunks.length; i++) {
-          const chunk = chunks[i]
+      // Stop the progress simulation
+      stopProgressSimulation()
+      setProgress(100)
 
-          // Update progress
-          setProgress(Math.round((i / chunks.length) * 100))
-
-          // Translate each chunk with extended timeout
-          const response = await axios.post(
-            "https://i18n.hectora.app/api/translate",
-            {
-              jsonData: chunk,
-              sourceLanguage,
-              targetLanguage,
-              apiKey,
-            },
-            {
-              timeout: 300000, // 5 minutes timeout per chunk
-            },
-          )
-
-          translatedChunks.push(response.data.translatedData || response.data)
-        }
-
-        // Merge chunks back together
-        const mergedResult = mergeJSONChunks(translatedChunks)
-        setTranslatedJson(JSON.stringify(mergedResult, null, 2))
-        setProgress(100)
-      } else {
-        // For smaller JSON, make a single request with extended timeout
-        const response = await axios.post(
-          "https://i18n.hectora.app/api/translate",
-          {
-            jsonData,
-            sourceLanguage,
-            targetLanguage,
-            apiKey,
-          },
-          {
-            timeout: 300000, // 5 minutes timeout
-          },
-        )
-
-        setTranslatedJson(JSON.stringify(response.data.translatedData || response.data, null, 2))
-      }
-
+      setTranslatedJson(JSON.stringify(response.data.translatedData, null, 2))
       setStatus({
         type: "success",
         message: "Translation completed successfully!",
       })
     } catch (error: any) {
+      stopProgressSimulation()
       console.error("Translation error:", error)
       setStatus({
         type: "error",
@@ -180,7 +148,29 @@ export default function TranslationForm() {
       })
     } finally {
       setIsLoading(false)
-      setShowProgress(false)
+    }
+  }
+
+  const startProgressSimulation = () => {
+    // Simulate progress for better UX during long-running translations
+    setProgress(0)
+    const id = setInterval(() => {
+      setProgress((prevProgress) => {
+        // Slowly increase progress, but never reach 100% until complete
+        if (prevProgress < 90) {
+          const increment = Math.random() * 2 + 0.5
+          return Math.min(prevProgress + increment, 90)
+        }
+        return prevProgress
+      })
+    }, 3000)
+    setPollingId(id)
+  }
+
+  const stopProgressSimulation = () => {
+    if (pollingId) {
+      clearInterval(pollingId)
+      setPollingId(null)
     }
   }
 
@@ -321,10 +311,13 @@ export default function TranslationForm() {
       {showProgress && (
         <div className="space-y-2">
           <div className="flex justify-between text-sm text-slate-500">
-            <span>Processing translation in chunks</span>
-            <span>{progress}%</span>
+            <span>Processing translation</span>
+            <span>{Math.round(progress)}%</span>
           </div>
           <Progress value={progress} className="h-2" />
+          <p className="text-xs text-slate-500 text-center">
+            Large translations may take several minutes. Please don't close this window.
+          </p>
         </div>
       )}
 
@@ -339,17 +332,49 @@ export default function TranslationForm() {
       )}
 
       {translatedJson && (
-        <Card className="mt-6">
+        <Card className="mt-6 border-emerald-200 shadow-md">
           <CardContent className="pt-6">
-            <div className="flex justify-between items-center mb-2">
-              <Label htmlFor="jsonOutput" className="text-sm font-medium">
-                Translated JSON
-              </Label>
-              <Button variant="outline" size="sm" onClick={handleDownload} className="text-xs">
+            <div className="flex justify-between items-center mb-4">
+              <div className="flex items-center">
+                <Check className="h-5 w-5 text-emerald-500 mr-2" />
+                <Label htmlFor="jsonOutput" className="text-lg font-medium text-emerald-700">
+                  Translated JSON
+                </Label>
+              </div>
+              <Button onClick={handleDownload} className="bg-emerald-600 hover:bg-emerald-700 text-white" size="sm">
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  width="16"
+                  height="16"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  className="mr-2"
+                >
+                  <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                  <polyline points="7 10 12 15 17 10" />
+                  <line x1="12" y1="15" x2="12" y2="3" />
+                </svg>
                 Download JSON
               </Button>
             </div>
-            <Textarea id="jsonOutput" value={translatedJson} readOnly className="font-mono text-sm h-64" />
+            <div className="bg-slate-50 p-4 rounded-md border border-slate-200">
+              <Textarea
+                id="jsonOutput"
+                value={translatedJson}
+                readOnly
+                className="font-mono text-sm h-64 bg-white border-slate-200 focus:border-emerald-300 focus:ring-emerald-200"
+              />
+            </div>
+            <div className="mt-3 text-xs text-slate-500 flex items-center justify-end">
+              <span>Target language: </span>
+              <span className="font-semibold ml-1">
+                {LANGUAGES.find((lang) => lang.code === targetLanguage)?.name || targetLanguage}
+              </span>
+            </div>
           </CardContent>
         </Card>
       )}

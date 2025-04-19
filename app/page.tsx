@@ -11,6 +11,14 @@ export default function Home() {
           </div>
 
           <div className="p-6">
+            <div className="mb-6 p-4 bg-blue-50 border border-blue-100 rounded-lg">
+              <h2 className="text-lg font-semibold text-blue-800 mb-2">About This Translation Service</h2>
+              <p className="text-sm text-blue-700">
+                This application uses Google's Gemini API to translate JSON data while preserving structure. The
+                translation is performed directly on our server with built-in rate limiting and chunking for handling
+                large files. For very large translations, the process may take several minutes.
+              </p>
+            </div>
             <TranslationForm />
           </div>
         </div>
