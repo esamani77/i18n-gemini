@@ -42,6 +42,8 @@ Give me only the translation. If there's an equivalent phrase in ${target} langu
 Be the best for UX writing and SEO writing: keep it short, natural, clear, and human-friendly. Prioritize meaning, 
 tone, and context over literal translation.
 
+IMPORTANT: Don't translate variables. Variables are defined like this: {word} these should be kept exactly like in the original text.
+
 UX & SEO Writing Guidelines to follow:
 1. Use clear, keyword-rich language.
 2. Prioritize plain, natural tone—avoid robotic or overly formal phrasing.
@@ -52,6 +54,7 @@ UX & SEO Writing Guidelines to follow:
 7. Maintain emotional tone and helpful intent (e.g., encouragement, clarity, action).
 8. Preserve the tone and style of the original phrase—whether it's friendly, formal, playful, or serious.
 9. Keep the **base meaning** of the original phrase intact—do not oversimplify or reinterpret.
+10. NEVER translate text inside curly braces like {this} or {variable} - keep these exactly as they are.
 `
       // Estimate tokens for the request (prompt + response)
       const estimatedTokens = this.estimateTokens(prompt) + this.estimateTokens(query) * 2

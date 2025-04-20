@@ -18,6 +18,7 @@ const SAMPLE_JSON = {
     title: "Welcome to our website",
     subtitle: "Discover amazing products and services",
     cta: "Get Started Now",
+    welcome_message: "Hello {username}, welcome back!",
   },
   navigation: {
     home: "Home",
@@ -53,7 +54,6 @@ export default function TranslationForm() {
   const [targetLanguage, setTargetLanguage] = useState("es")
   const [jsonInput, setJsonInput] = useState(JSON.stringify(SAMPLE_JSON, null, 2))
   const [translatedJson, setTranslatedJson] = useState("")
-  const [partialTranslations, setPartialTranslations] = useState<Record<string, string>>({})
   const [isLoading, setIsLoading] = useState(false)
   const [status, setStatus] = useState<{ type: "success" | "error"; message: string } | null>(null)
   const [progress, setProgress] = useState(0)
@@ -61,14 +61,16 @@ export default function TranslationForm() {
   const [completedKeys, setCompletedKeys] = useState(0)
   const [showProgress, setShowProgress] = useState(false)
   const [isStreamingComplete, setIsStreamingComplete] = useState(false)
-  const eventSourceRef = useRef<EventSource | null>(null)
+  const [currentTranslation, setCurrentTranslation] = useState<{ key: string; value: string } | null>(null)
+  const abortControllerRef = useRef<AbortController | null>(null)
   const originalJsonRef = useRef<any>(null)
+  const partialResultRef = useRef<any>(null)
 
-  // Clean up event source on unmount
+  // Clean up abort controller on unmount
   useEffect(() => {
     return () => {
-      if (eventSourceRef.current) {
-        eventSourceRef.current.close()
+      if (abortControllerRef.current) {
+        abortControllerRef.current.abort()
       }
     }
   }, [])
@@ -97,25 +99,29 @@ export default function TranslationForm() {
   const handleTranslate = async () => {
     // Reset previous results
     setTranslatedJson("")
-    setPartialTranslations({})
     setStatus(null)
     setProgress(0)
     setCompletedKeys(0)
     setTotalKeys(0)
     setShowProgress(false)
     setIsStreamingComplete(false)
+    setCurrentTranslation(null)
+    partialResultRef.current = null
 
-    // Close any existing event source
-    if (eventSourceRef.current) {
-      eventSourceRef.current.close()
-      eventSourceRef.current = null
+    // Abort any existing request
+    if (abortControllerRef.current) {
+      abortControllerRef.current.abort()
     }
+
+    // Create a new abort controller
+    abortControllerRef.current = new AbortController()
 
     // Validate inputs
     let jsonData
     try {
       jsonData = JSON.parse(jsonInput)
       originalJsonRef.current = jsonData // Store the original JSON structure
+      partialResultRef.current = JSON.parse(JSON.stringify(jsonData)) // Create a copy for partial results
     } catch (error) {
       setStatus({
         type: "error",
@@ -136,13 +142,6 @@ export default function TranslationForm() {
     setShowProgress(true)
 
     try {
-      // Create a new EventSource for SSE
-      const params = new URLSearchParams({
-        apiKey,
-        sourceLanguage,
-        targetLanguage,
-      }).toString()
-
       // Create a POST request with the JSON data
       const response = await fetch("/api/translate", {
         method: "POST",
@@ -155,66 +154,80 @@ export default function TranslationForm() {
           targetLanguage,
           apiKey,
         }),
+        signal: abortControllerRef.current.signal,
       })
 
-      if (!response.ok || !response.body) {
-        throw new Error(`HTTP error! status: ${response.status}`)
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}))
+        throw new Error(`HTTP error! status: ${response.status}${errorData.error ? ` - ${errorData.error}` : ""}`)
       }
 
-      // Set up the streaming reader
-      const reader = response.body.getReader()
-      const decoder = new TextDecoder()
-      let buffer = ""
+      // Set up the EventSource for SSE
+      const eventSource = new EventSource("/api/translate")
 
-      // Process the stream
-      while (true) {
-        const { done, value } = await reader.read()
-        if (done) break
-
-        // Decode the chunk and add it to our buffer
-        buffer += decoder.decode(value, { stream: true })
-
-        // Process complete SSE messages
-        const lines = buffer.split("\n\n")
-        buffer = lines.pop() || "" // Keep the last incomplete chunk in the buffer
-
-        for (const line of lines) {
-          if (line.startsWith("data: ")) {
-            try {
-              const data = JSON.parse(line.substring(6))
-              handleStreamMessage(data)
-            } catch (e) {
-              console.error("Error parsing SSE message:", e)
-            }
-          }
+      eventSource.onmessage = (event) => {
+        try {
+          const data = JSON.parse(event.data)
+          handleStreamMessage(data)
+        } catch (e) {
+          console.error("Error parsing SSE message:", e)
         }
       }
-    } catch (error: any) {
-      console.error("Translation error:", error)
-      setStatus({
-        type: "error",
-        message: `Error: ${error.message || "Failed to translate"}`,
+
+      eventSource.onerror = (error) => {
+        console.error("EventSource error:", error)
+        eventSource.close()
+        setIsLoading(false)
+        setStatus({
+          type: "error",
+          message: "Connection error. Please try again.",
+        })
+      }
+
+      // Store the EventSource for cleanup
+      const controller = abortControllerRef.current
+      controller.signal.addEventListener("abort", () => {
+        eventSource.close()
       })
-      setIsLoading(false)
+    } catch (error: any) {
+      if (error.name !== "AbortError") {
+        console.error("Translation error:", error)
+        setStatus({
+          type: "error",
+          message: `Error: ${error.message || "Failed to translate"}`,
+        })
+        setIsLoading(false)
+      }
     }
   }
 
   const handleStreamMessage = (data: any) => {
     switch (data.type) {
+      case "init":
+        // Initialize with total keys
+        setTotalKeys(data.totalKeys)
+        break
+
       case "progress":
         // Update progress
         setCompletedKeys(data.progress.completed)
         setTotalKeys(data.progress.total)
         setProgress((data.progress.completed / data.progress.total) * 100)
 
-        // Update partial translations
-        setPartialTranslations((prev) => ({
-          ...prev,
-          [data.key]: data.translation,
-        }))
+        // Update current translation being processed
+        setCurrentTranslation({
+          key: data.key,
+          value: data.translation,
+        })
 
-        // Update the displayed JSON with partial results
-        updatePartialJson()
+        // Update partial result
+        if (partialResultRef.current && data.key) {
+          // Update the JSON structure with this translation
+          updateJsonWithTranslation(partialResultRef.current, data.key, data.translation)
+
+          // Update the displayed JSON
+          setTranslatedJson(JSON.stringify(partialResultRef.current, null, 2))
+        }
         break
 
       case "complete":
@@ -240,32 +253,50 @@ export default function TranslationForm() {
     }
   }
 
-  const updatePartialJson = () => {
-    if (!originalJsonRef.current) return
+  // Helper function to update nested JSON with a translation
+  const updateJsonWithTranslation = (json: any, path: string, value: string) => {
+    const parts = path.split(".")
+    let current = json
 
-    // Create a deep copy of the original structure
-    const partialResult = JSON.parse(JSON.stringify(originalJsonRef.current))
+    // Navigate to the nested property
+    for (let i = 0; i < parts.length - 1; i++) {
+      // Handle array notation like "key[0]"
+      const arrayMatch = parts[i].match(/^(.*)\[(\d+)\]$/)
 
-    // Apply all partial translations
-    Object.entries(partialTranslations).forEach(([key, translation]) => {
-      const path = key.split(".")
-      let current = partialResult
-
-      // Navigate to the nested property
-      for (let i = 0; i < path.length - 1; i++) {
-        current = current[path[i]]
-        if (!current) return // Skip if path doesn't exist
+      if (arrayMatch) {
+        const [_, key, index] = arrayMatch
+        if (!current[key]) current[key] = []
+        if (!current[key][Number.parseInt(index)]) current[key][Number.parseInt(index)] = {}
+        current = current[key][Number.parseInt(index)]
+      } else {
+        if (!current[parts[i]]) current[parts[i]] = {}
+        current = current[parts[i]]
       }
+    }
 
-      // Set the translated value
-      const lastKey = path[path.length - 1]
-      if (current && current[lastKey] !== undefined) {
-        current[lastKey] = translation
-      }
+    // Set the value at the final key
+    const lastPart = parts[parts.length - 1]
+    const arrayMatch = lastPart.match(/^(.*)\[(\d+)\]$/)
+
+    if (arrayMatch) {
+      const [_, key, index] = arrayMatch
+      if (!current[key]) current[key] = []
+      current[key][Number.parseInt(index)] = value
+    } else {
+      current[lastPart] = value
+    }
+  }
+
+  const handleCancel = () => {
+    if (abortControllerRef.current) {
+      abortControllerRef.current.abort()
+      abortControllerRef.current = null
+    }
+    setIsLoading(false)
+    setStatus({
+      type: "error",
+      message: "Translation cancelled",
     })
-
-    // Update the displayed JSON
-    setTranslatedJson(JSON.stringify(partialResult, null, 2))
   }
 
   const handleDownload = () => {
@@ -385,7 +416,7 @@ export default function TranslationForm() {
         />
       </div>
 
-      <div className="flex justify-center">
+      <div className="flex justify-center gap-4">
         <Button
           onClick={handleTranslate}
           disabled={isLoading}
@@ -400,6 +431,11 @@ export default function TranslationForm() {
             "Translate JSON"
           )}
         </Button>
+        {isLoading && (
+          <Button onClick={handleCancel} variant="outline" className="border-red-300 text-red-600 hover:bg-red-50">
+            Cancel
+          </Button>
+        )}
       </div>
 
       {showProgress && (
@@ -411,9 +447,16 @@ export default function TranslationForm() {
             </span>
           </div>
           <Progress value={progress} className="h-2" />
-          <p className="text-xs text-slate-500 text-center">
-            {isLoading ? "Streaming translations in real-time. Each key is translated individually." : ""}
-          </p>
+          {currentTranslation && (
+            <div className="bg-emerald-50 p-2 rounded border border-emerald-100 mt-2">
+              <p className="text-xs text-emerald-700">
+                <span className="font-semibold">Currently translating:</span> {currentTranslation.key}
+              </p>
+              <p className="text-xs text-emerald-600 mt-1">
+                <span className="font-semibold">Result:</span> {currentTranslation.value}
+              </p>
+            </div>
+          )}
         </div>
       )}
 
@@ -441,30 +484,55 @@ export default function TranslationForm() {
                   {isStreamingComplete ? "Translated JSON" : "Live Translation"}
                 </Label>
               </div>
-              <Button
-                onClick={handleDownload}
-                className="bg-emerald-600 hover:bg-emerald-700 text-white"
-                size="sm"
-                disabled={!isStreamingComplete}
-              >
-                <svg
-                  xmlns="http://www.w3.org/2000/svg"
-                  width="16"
-                  height="16"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="2"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  className="mr-2"
+              <div className="flex gap-2">
+                <Button
+                  onClick={() => {
+                    navigator.clipboard.writeText(translatedJson)
+                    setStatus({
+                      type: "success",
+                      message: "Copied to clipboard!",
+                    })
+                  }}
+                  className="bg-blue-600 hover:bg-blue-700 text-white"
+                  size="sm"
                 >
-                  <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
-                  <polyline points="7 10 12 15 17 10" />
-                  <line x1="12" y1="15" x2="12" y2="3" />
-                </svg>
-                Download JSON
-              </Button>
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    width="16"
+                    height="16"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    className="mr-2"
+                  >
+                    <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+                    <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+                  </svg>
+                  Copy
+                </Button>
+                <Button onClick={handleDownload} className="bg-emerald-600 hover:bg-emerald-700 text-white" size="sm">
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    width="16"
+                    height="16"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    className="mr-2"
+                  >
+                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                    <polyline points="7 10 12 15 17 10" />
+                    <line x1="12" y1="15" x2="12" y2="3" />
+                  </svg>
+                  Download
+                </Button>
+              </div>
             </div>
             <div className="bg-slate-50 p-4 rounded-md border border-slate-200">
               <Textarea

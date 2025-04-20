@@ -195,7 +195,7 @@ export class TranslationManager {
         )}, Keys: ${progress.completedKeys.length}/${keys.length}, Estimated completion: ${estimatedCompletion}`,
       )
 
-      // Translate chunk
+      // Translate chunk - one key at a time for streaming
       for (const key of chunk) {
         const text = flattenedJson[key]
 
@@ -203,6 +203,15 @@ export class TranslationManager {
         if (typeof text !== "string" || !text.trim()) {
           progress.translatedFlatJson[key] = text
           progress.completedKeys.push(key)
+
+          // Stream the result back to the client even for skipped items
+          if (onProgress) {
+            await onProgress(key, text, {
+              completed: progress.completedKeys.length,
+              total: keys.length,
+            })
+          }
+
           continue
         }
 
@@ -219,10 +228,6 @@ export class TranslationManager {
 
           // Stream the result back to the client
           if (onProgress) {
-            // Create a partial result by updating the original structure
-            const partialResult = this.unflattenJson({ [key]: translation }, jsonObject)
-
-            // Send the progress update
             await onProgress(key, translation, {
               completed: progress.completedKeys.length,
               total: keys.length,
@@ -241,6 +246,14 @@ export class TranslationManager {
           // Use original text as fallback
           progress.translatedFlatJson[key] = text
           progress.completedKeys.push(key)
+
+          // Stream the error result back to the client
+          if (onProgress) {
+            await onProgress(key, text, {
+              completed: progress.completedKeys.length,
+              total: keys.length,
+            })
+          }
         }
       }
 
@@ -430,6 +443,16 @@ export class TranslationManager {
 
       if (typeof value === "string") {
         result[newPrefix] = value
+      } else if (Array.isArray(value)) {
+        // Handle arrays
+        value.forEach((item, index) => {
+          const arrayPrefix = `${newPrefix}[${index}]`
+          if (typeof item === "string") {
+            result[arrayPrefix] = item
+          } else if (typeof item === "object" && item !== null) {
+            this.flattenJson(item, arrayPrefix, result)
+          }
+        })
       } else if (typeof value === "object" && value !== null) {
         this.flattenJson(value, newPrefix, result)
       }
@@ -442,17 +465,45 @@ export class TranslationManager {
     // Create a deep copy of the original structure
     const result = JSON.parse(JSON.stringify(originalStructure))
 
-    // Recursive helper to set nested values
-    const setValue = (obj: any, path: string[], value: string): void => {
-      const lastKey = path.pop()!
-      const target = path.reduce((acc, key) => acc[key], obj)
-      target[lastKey] = value
-    }
-
     // Iterate through flattened keys
     for (const [flatKey, translation] of Object.entries(flatJson)) {
-      const path = flatKey.split(".")
-      setValue(result, path, translation)
+      // Handle array notation like "key[0]"
+      if (flatKey.includes("[")) {
+        const parts = flatKey.split(/\.|\[|\]/).filter(Boolean)
+        let current = result
+
+        // Navigate to the nested property
+        for (let i = 0; i < parts.length - 2; i += 2) {
+          const key = parts[i]
+          const index = Number.parseInt(parts[i + 1])
+
+          if (!current[key]) current[key] = []
+          if (!current[key][index]) current[key][index] = {}
+
+          current = current[key][index]
+        }
+
+        // Set the value at the final key
+        const lastKey = parts[parts.length - 2]
+        const lastIndex = Number.parseInt(parts[parts.length - 1])
+
+        if (!current[lastKey]) current[lastKey] = []
+        current[lastKey][lastIndex] = translation
+      } else {
+        // Handle regular nested keys
+        const path = flatKey.split(".")
+        let current = result
+
+        // Navigate to the nested property
+        for (let i = 0; i < path.length - 1; i++) {
+          if (!current[path[i]]) current[path[i]] = {}
+          current = current[path[i]]
+        }
+
+        // Set the value at the final key
+        const lastKey = path[path.length - 1]
+        current[lastKey] = translation
+      }
     }
 
     return result
