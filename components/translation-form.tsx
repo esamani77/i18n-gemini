@@ -157,38 +157,48 @@ export default function TranslationForm() {
         signal: abortControllerRef.current.signal,
       })
 
-      if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}))
-        throw new Error(`HTTP error! status: ${response.status}${errorData.error ? ` - ${errorData.error}` : ""}`)
+      if (!response.ok || !response.body) {
+        const errorText = await response.text().catch(() => "Unknown error")
+        throw new Error(`HTTP error! status: ${response.status}${errorText ? ` - ${errorText}` : ""}`)
       }
 
-      // Set up the EventSource for SSE
-      const eventSource = new EventSource("/api/translate")
+      // Process the stream
+      const reader = response.body.getReader()
+      const decoder = new TextDecoder()
+      let buffer = ""
 
-      eventSource.onmessage = (event) => {
-        try {
-          const data = JSON.parse(event.data)
-          handleStreamMessage(data)
-        } catch (e) {
-          console.error("Error parsing SSE message:", e)
+      while (true) {
+        const { done, value } = await reader.read()
+        if (done) break
+
+        // Decode the chunk and add it to our buffer
+        buffer += decoder.decode(value, { stream: true })
+
+        // Process complete messages
+        const lines = buffer.split("\n")
+        buffer = lines.pop() || "" // Keep the last incomplete chunk in the buffer
+
+        for (const line of lines) {
+          if (line.trim()) {
+            try {
+              const data = JSON.parse(line)
+              handleStreamMessage(data)
+            } catch (e) {
+              console.error("Error parsing message:", e, "Line:", line)
+            }
+          }
         }
       }
 
-      eventSource.onerror = (error) => {
-        console.error("EventSource error:", error)
-        eventSource.close()
-        setIsLoading(false)
-        setStatus({
-          type: "error",
-          message: "Connection error. Please try again.",
-        })
+      // Process any remaining data in the buffer
+      if (buffer.trim()) {
+        try {
+          const data = JSON.parse(buffer)
+          handleStreamMessage(data)
+        } catch (e) {
+          console.error("Error parsing final message:", e)
+        }
       }
-
-      // Store the EventSource for cleanup
-      const controller = abortControllerRef.current
-      controller.signal.addEventListener("abort", () => {
-        eventSource.close()
-      })
     } catch (error: any) {
       if (error.name !== "AbortError") {
         console.error("Translation error:", error)
@@ -255,35 +265,46 @@ export default function TranslationForm() {
 
   // Helper function to update nested JSON with a translation
   const updateJsonWithTranslation = (json: any, path: string, value: string) => {
-    const parts = path.split(".")
-    let current = json
-
-    // Navigate to the nested property
-    for (let i = 0; i < parts.length - 1; i++) {
+    try {
       // Handle array notation like "key[0]"
-      const arrayMatch = parts[i].match(/^(.*)\[(\d+)\]$/)
+      if (path.includes("[")) {
+        const parts = path.split(/\.|\[|\]/).filter(Boolean)
+        let current = json
 
-      if (arrayMatch) {
-        const [_, key, index] = arrayMatch
-        if (!current[key]) current[key] = []
-        if (!current[key][Number.parseInt(index)]) current[key][Number.parseInt(index)] = {}
-        current = current[key][Number.parseInt(index)]
+        // Navigate to the nested property
+        for (let i = 0; i < parts.length - 2; i += 2) {
+          const key = parts[i]
+          const index = Number.parseInt(parts[i + 1], 10)
+
+          if (!current[key]) current[key] = []
+          if (!current[key][index]) current[key][index] = {}
+
+          current = current[key][index]
+        }
+
+        // Set the value at the final key
+        const lastKey = parts[parts.length - 2]
+        const lastIndex = Number.parseInt(parts[parts.length - 1], 10)
+
+        if (!current[lastKey]) current[lastKey] = []
+        current[lastKey][lastIndex] = value
       } else {
-        if (!current[parts[i]]) current[parts[i]] = {}
-        current = current[parts[i]]
+        // Handle regular nested keys
+        const parts = path.split(".")
+        let current = json
+
+        // Navigate to the nested property
+        for (let i = 0; i < parts.length - 1; i++) {
+          if (current[parts[i]] === undefined) current[parts[i]] = {}
+          current = current[parts[i]]
+        }
+
+        // Set the value at the final key
+        const lastPart = parts[parts.length - 1]
+        current[lastPart] = value
       }
-    }
-
-    // Set the value at the final key
-    const lastPart = parts[parts.length - 1]
-    const arrayMatch = lastPart.match(/^(.*)\[(\d+)\]$/)
-
-    if (arrayMatch) {
-      const [_, key, index] = arrayMatch
-      if (!current[key]) current[key] = []
-      current[key][Number.parseInt(index)] = value
-    } else {
-      current[lastPart] = value
+    } catch (error) {
+      console.error(`Error updating JSON with translation for path ${path}:`, error)
     }
   }
 
