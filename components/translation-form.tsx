@@ -2,9 +2,8 @@
 
 import type React from "react"
 
-import { useState } from "react"
+import { useState, useRef, useEffect } from "react"
 import { Loader2, Check, AlertCircle } from "lucide-react"
-import axios from "axios"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -54,11 +53,25 @@ export default function TranslationForm() {
   const [targetLanguage, setTargetLanguage] = useState("es")
   const [jsonInput, setJsonInput] = useState(JSON.stringify(SAMPLE_JSON, null, 2))
   const [translatedJson, setTranslatedJson] = useState("")
+  const [partialTranslations, setPartialTranslations] = useState<Record<string, string>>({})
   const [isLoading, setIsLoading] = useState(false)
   const [status, setStatus] = useState<{ type: "success" | "error"; message: string } | null>(null)
   const [progress, setProgress] = useState(0)
+  const [totalKeys, setTotalKeys] = useState(0)
+  const [completedKeys, setCompletedKeys] = useState(0)
   const [showProgress, setShowProgress] = useState(false)
-  const [pollingId, setPollingId] = useState<NodeJS.Timeout | null>(null)
+  const [isStreamingComplete, setIsStreamingComplete] = useState(false)
+  const eventSourceRef = useRef<EventSource | null>(null)
+  const originalJsonRef = useRef<any>(null)
+
+  // Clean up event source on unmount
+  useEffect(() => {
+    return () => {
+      if (eventSourceRef.current) {
+        eventSourceRef.current.close()
+      }
+    }
+  }, [])
 
   const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
@@ -84,14 +97,25 @@ export default function TranslationForm() {
   const handleTranslate = async () => {
     // Reset previous results
     setTranslatedJson("")
+    setPartialTranslations({})
     setStatus(null)
     setProgress(0)
+    setCompletedKeys(0)
+    setTotalKeys(0)
     setShowProgress(false)
+    setIsStreamingComplete(false)
+
+    // Close any existing event source
+    if (eventSourceRef.current) {
+      eventSourceRef.current.close()
+      eventSourceRef.current = null
+    }
 
     // Validate inputs
     let jsonData
     try {
       jsonData = JSON.parse(jsonInput)
+      originalJsonRef.current = jsonData // Store the original JSON structure
     } catch (error) {
       setStatus({
         type: "error",
@@ -112,66 +136,136 @@ export default function TranslationForm() {
     setShowProgress(true)
 
     try {
-      // Start a progress simulation for better UX
-      startProgressSimulation()
+      // Create a new EventSource for SSE
+      const params = new URLSearchParams({
+        apiKey,
+        sourceLanguage,
+        targetLanguage,
+      }).toString()
 
-      // Make the API request to our Next.js API route
-      const response = await axios.post(
-        "/api/translate",
-        {
+      // Create a POST request with the JSON data
+      const response = await fetch("/api/translate", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
           jsonData,
           sourceLanguage,
           targetLanguage,
           apiKey,
-        },
-        {
-          // Set a long timeout for large translations
-          timeout: 3600000, // 1 hour
-        },
-      )
-
-      // Stop the progress simulation
-      stopProgressSimulation()
-      setProgress(100)
-
-      setTranslatedJson(JSON.stringify(response.data.translatedData, null, 2))
-      setStatus({
-        type: "success",
-        message: "Translation completed successfully!",
+        }),
       })
+
+      if (!response.ok || !response.body) {
+        throw new Error(`HTTP error! status: ${response.status}`)
+      }
+
+      // Set up the streaming reader
+      const reader = response.body.getReader()
+      const decoder = new TextDecoder()
+      let buffer = ""
+
+      // Process the stream
+      while (true) {
+        const { done, value } = await reader.read()
+        if (done) break
+
+        // Decode the chunk and add it to our buffer
+        buffer += decoder.decode(value, { stream: true })
+
+        // Process complete SSE messages
+        const lines = buffer.split("\n\n")
+        buffer = lines.pop() || "" // Keep the last incomplete chunk in the buffer
+
+        for (const line of lines) {
+          if (line.startsWith("data: ")) {
+            try {
+              const data = JSON.parse(line.substring(6))
+              handleStreamMessage(data)
+            } catch (e) {
+              console.error("Error parsing SSE message:", e)
+            }
+          }
+        }
+      }
     } catch (error: any) {
-      stopProgressSimulation()
       console.error("Translation error:", error)
       setStatus({
         type: "error",
-        message: `Error: ${error.response?.data?.error || error.message || "Failed to translate"}`,
+        message: `Error: ${error.message || "Failed to translate"}`,
       })
-    } finally {
       setIsLoading(false)
     }
   }
 
-  const startProgressSimulation = () => {
-    // Simulate progress for better UX during long-running translations
-    setProgress(0)
-    const id = setInterval(() => {
-      setProgress((prevProgress) => {
-        // Slowly increase progress, but never reach 100% until complete
-        if (prevProgress < 90) {
-          const increment = Math.random() * 2 + 0.5
-          return Math.min(prevProgress + increment, 90)
-        }
-        return prevProgress
-      })
-    }, 3000)
-    setPollingId(id)
+  const handleStreamMessage = (data: any) => {
+    switch (data.type) {
+      case "progress":
+        // Update progress
+        setCompletedKeys(data.progress.completed)
+        setTotalKeys(data.progress.total)
+        setProgress((data.progress.completed / data.progress.total) * 100)
+
+        // Update partial translations
+        setPartialTranslations((prev) => ({
+          ...prev,
+          [data.key]: data.translation,
+        }))
+
+        // Update the displayed JSON with partial results
+        updatePartialJson()
+        break
+
+      case "complete":
+        // Translation is complete
+        setTranslatedJson(JSON.stringify(data.translatedData, null, 2))
+        setProgress(100)
+        setIsLoading(false)
+        setIsStreamingComplete(true)
+        setStatus({
+          type: "success",
+          message: "Translation completed successfully!",
+        })
+        break
+
+      case "error":
+        // Handle error
+        setStatus({
+          type: "error",
+          message: `Error: ${data.error}`,
+        })
+        setIsLoading(false)
+        break
+    }
   }
 
-  const stopProgressSimulation = () => {
-    if (pollingId) {
-      clearInterval(pollingId)
-      setPollingId(null)
-    }
+  const updatePartialJson = () => {
+    if (!originalJsonRef.current) return
+
+    // Create a deep copy of the original structure
+    const partialResult = JSON.parse(JSON.stringify(originalJsonRef.current))
+
+    // Apply all partial translations
+    Object.entries(partialTranslations).forEach(([key, translation]) => {
+      const path = key.split(".")
+      let current = partialResult
+
+      // Navigate to the nested property
+      for (let i = 0; i < path.length - 1; i++) {
+        current = current[path[i]]
+        if (!current) return // Skip if path doesn't exist
+      }
+
+      // Set the translated value
+      const lastKey = path[path.length - 1]
+      if (current && current[lastKey] !== undefined) {
+        current[lastKey] = translation
+      }
+    })
+
+    // Update the displayed JSON
+    setTranslatedJson(JSON.stringify(partialResult, null, 2))
   }
 
   const handleDownload = () => {
@@ -312,11 +406,13 @@ export default function TranslationForm() {
         <div className="space-y-2">
           <div className="flex justify-between text-sm text-slate-500">
             <span>Processing translation</span>
-            <span>{Math.round(progress)}%</span>
+            <span>
+              {completedKeys}/{totalKeys} keys ({Math.round(progress)}%)
+            </span>
           </div>
           <Progress value={progress} className="h-2" />
           <p className="text-xs text-slate-500 text-center">
-            Large translations may take several minutes. Please don't close this window.
+            {isLoading ? "Streaming translations in real-time. Each key is translated individually." : ""}
           </p>
         </div>
       )}
@@ -336,12 +432,21 @@ export default function TranslationForm() {
           <CardContent className="pt-6">
             <div className="flex justify-between items-center mb-4">
               <div className="flex items-center">
-                <Check className="h-5 w-5 text-emerald-500 mr-2" />
+                {isStreamingComplete ? (
+                  <Check className="h-5 w-5 text-emerald-500 mr-2" />
+                ) : (
+                  <Loader2 className="h-5 w-5 text-amber-500 mr-2 animate-spin" />
+                )}
                 <Label htmlFor="jsonOutput" className="text-lg font-medium text-emerald-700">
-                  Translated JSON
+                  {isStreamingComplete ? "Translated JSON" : "Live Translation"}
                 </Label>
               </div>
-              <Button onClick={handleDownload} className="bg-emerald-600 hover:bg-emerald-700 text-white" size="sm">
+              <Button
+                onClick={handleDownload}
+                className="bg-emerald-600 hover:bg-emerald-700 text-white"
+                size="sm"
+                disabled={!isStreamingComplete}
+              >
                 <svg
                   xmlns="http://www.w3.org/2000/svg"
                   width="16"
@@ -369,10 +474,12 @@ export default function TranslationForm() {
                 className="font-mono text-sm h-64 bg-white border-slate-200 focus:border-emerald-300 focus:ring-emerald-200"
               />
             </div>
-            <div className="mt-3 text-xs text-slate-500 flex items-center justify-end">
-              <span>Target language: </span>
-              <span className="font-semibold ml-1">
-                {LANGUAGES.find((lang) => lang.code === targetLanguage)?.name || targetLanguage}
+            <div className="mt-3 text-xs text-slate-500 flex items-center justify-between">
+              <span>
+                {completedKeys}/{totalKeys} keys translated ({Math.round(progress)}%)
+              </span>
+              <span className="font-semibold">
+                Target language: {LANGUAGES.find((lang) => lang.code === targetLanguage)?.name || targetLanguage}
               </span>
             </div>
           </CardContent>

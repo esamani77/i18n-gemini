@@ -14,6 +14,12 @@ interface TranslationOptions {
   saveProgressInterval?: number
 }
 
+interface StreamingTranslationOptions extends TranslationOptions {
+  onProgress?: (key: string, translation: string, progress: { completed: number; total: number }) => Promise<void>
+  onComplete?: (translatedData: any) => Promise<void>
+  onError?: (error: Error) => Promise<void>
+}
+
 interface TranslationProgress {
   completedKeys: string[]
   translatedFlatJson: Record<string, string>
@@ -71,6 +77,185 @@ export class TranslationManager {
 
     console.log(`Translation completed. Output saved to: ${outputPath}`)
     return outputPath
+  }
+
+  async translateJsonStreaming({
+    inputJsonPath,
+    outputDir,
+    sourceLanguage,
+    targetLanguage,
+    chunkSize = 5,
+    delayBetweenRequests = 1000,
+    saveProgressInterval = 10,
+    onProgress,
+    onComplete,
+    onError,
+  }: StreamingTranslationOptions): Promise<void> {
+    try {
+      // Ensure output directory exists
+      fs.ensureDirSync(outputDir)
+
+      // Read input JSON
+      const inputJson = FileHandler.readJsonFile(inputJsonPath)
+
+      // Generate output filename and progress filename
+      const outputBasename = path.basename(inputJsonPath, path.extname(inputJsonPath))
+      const outputFilename = `${outputBasename}-${targetLanguage}-${Date.now()}.json`
+      const outputPath = path.join(outputDir, outputFilename)
+      const progressFilename = `${outputBasename}-${targetLanguage}-progress.json`
+      const progressFilePath = path.join(outputDir, progressFilename)
+
+      // Translate JSON with streaming
+      const translatedJson = await this.translateJsonWithStreaming(
+        inputJson,
+        sourceLanguage,
+        targetLanguage,
+        chunkSize,
+        delayBetweenRequests,
+        progressFilePath,
+        saveProgressInterval,
+        onProgress,
+      )
+
+      // Write translated JSON
+      FileHandler.writeJsonFile(outputPath, translatedJson)
+
+      // Clean up progress file if translation completed successfully
+      if (fs.existsSync(progressFilePath)) {
+        fs.removeSync(progressFilePath)
+      }
+
+      // Call onComplete callback with the final result
+      if (onComplete) {
+        await onComplete(translatedJson)
+      }
+
+      console.log(`Translation completed. Output saved to: ${outputPath}`)
+    } catch (error) {
+      console.error("Translation streaming error:", error)
+      if (onError && error instanceof Error) {
+        await onError(error)
+      }
+    }
+  }
+
+  private async translateJsonWithStreaming(
+    jsonObject: any,
+    sourceLanguage: string,
+    targetLanguage: string,
+    chunkSize: number,
+    delayBetweenRequests: number,
+    progressFilePath: string,
+    saveProgressInterval: number,
+    onProgress?: (key: string, translation: string, progress: { completed: number; total: number }) => Promise<void>,
+  ): Promise<any> {
+    // Flatten the JSON to process in chunks
+    const flattenedJson = this.flattenJson(jsonObject)
+    const keys = Object.keys(flattenedJson)
+    let progress: TranslationProgress
+
+    // Check if there's a saved progress
+    if (fs.existsSync(progressFilePath)) {
+      try {
+        progress = fs.readJSONSync(progressFilePath)
+        console.log(
+          `Resuming translation from saved progress. Completed: ${progress.completedKeys.length}/${progress.totalKeys} keys`,
+        )
+      } catch (error) {
+        console.warn("Could not load progress file, starting fresh", error)
+        progress = this.initializeProgress(keys)
+      }
+    } else {
+      progress = this.initializeProgress(keys)
+    }
+
+    // Calculate remaining keys to process
+    const remainingKeys = keys.filter((key) => !progress.completedKeys.includes(key))
+
+    // Process remaining keys in chunks
+    let processedSinceLastSave = 0
+    let currentChunkSize = this.calculateOptimalChunkSize(chunkSize, remainingKeys.length)
+
+    for (let i = 0; i < remainingKeys.length; i += currentChunkSize) {
+      // Recalculate optimal chunk size periodically based on rate limits
+      if (i % (currentChunkSize * 5) === 0) {
+        currentChunkSize = this.calculateOptimalChunkSize(chunkSize, remainingKeys.length - i)
+      }
+
+      const chunk = remainingKeys.slice(i, i + currentChunkSize)
+      const estimatedCompletion = this.estimateCompletion(
+        progress.startTime,
+        progress.completedKeys.length,
+        keys.length,
+      )
+
+      console.log(
+        `Processing chunk ${Math.floor(i / currentChunkSize) + 1}/${Math.ceil(
+          remainingKeys.length / currentChunkSize,
+        )}, Keys: ${progress.completedKeys.length}/${keys.length}, Estimated completion: ${estimatedCompletion}`,
+      )
+
+      // Translate chunk
+      for (const key of chunk) {
+        const text = flattenedJson[key]
+
+        // Skip if not a string or empty
+        if (typeof text !== "string" || !text.trim()) {
+          progress.translatedFlatJson[key] = text
+          progress.completedKeys.push(key)
+          continue
+        }
+
+        try {
+          const translation = await this.translator.translate({
+            query: text,
+            source: sourceLanguage,
+            target: targetLanguage,
+          })
+
+          // Update progress
+          progress.translatedFlatJson[key] = translation
+          progress.completedKeys.push(key)
+
+          // Stream the result back to the client
+          if (onProgress) {
+            // Create a partial result by updating the original structure
+            const partialResult = this.unflattenJson({ [key]: translation }, jsonObject)
+
+            // Send the progress update
+            await onProgress(key, translation, {
+              completed: progress.completedKeys.length,
+              total: keys.length,
+            })
+          }
+
+          processedSinceLastSave++
+
+          // Save progress periodically
+          if (processedSinceLastSave >= saveProgressInterval) {
+            await this.saveProgress(progressFilePath, progress)
+            processedSinceLastSave = 0
+          }
+        } catch (error) {
+          console.error(`Translation error for key ${key}:`, error)
+          // Use original text as fallback
+          progress.translatedFlatJson[key] = text
+          progress.completedKeys.push(key)
+        }
+      }
+
+      // No need for explicit delay as the rate limiter handles it internally,
+      // but we can add a small delay between chunks to spread the load
+      if (i + currentChunkSize < remainingKeys.length) {
+        await new Promise((resolve) => setTimeout(resolve, delayBetweenRequests))
+      }
+    }
+
+    // Final save of progress
+    await this.saveProgress(progressFilePath, progress)
+
+    // Reconstruct the original JSON structure with translated values
+    return this.unflattenJson(progress.translatedFlatJson, jsonObject)
   }
 
   private async translateJsonWithChunking(
