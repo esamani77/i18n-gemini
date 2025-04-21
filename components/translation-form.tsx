@@ -60,11 +60,11 @@ export default function TranslationForm() {
   const [totalKeys, setTotalKeys] = useState(0)
   const [completedKeys, setCompletedKeys] = useState(0)
   const [showProgress, setShowProgress] = useState(false)
-  const [isStreamingComplete, setIsStreamingComplete] = useState(false)
+  const [isTranslationComplete, setIsTranslationComplete] = useState(false)
   const [currentTranslation, setCurrentTranslation] = useState<{ key: string; value: string } | null>(null)
   const abortControllerRef = useRef<AbortController | null>(null)
   const originalJsonRef = useRef<any>(null)
-  const partialResultRef = useRef<any>(null)
+  const translatedJsonRef = useRef<any>(null)
 
   // Clean up abort controller on unmount
   useEffect(() => {
@@ -96,177 +96,33 @@ export default function TranslationForm() {
     reader.readAsText(file)
   }
 
-  const handleTranslate = async () => {
-    // Reset previous results
-    setTranslatedJson("")
-    setStatus(null)
-    setProgress(0)
-    setCompletedKeys(0)
-    setTotalKeys(0)
-    setShowProgress(false)
-    setIsStreamingComplete(false)
-    setCurrentTranslation(null)
-    partialResultRef.current = null
-
-    // Abort any existing request
-    if (abortControllerRef.current) {
-      abortControllerRef.current.abort()
+  // Helper function to flatten JSON
+  const flattenJson = (obj: any, prefix = "", result: Record<string, string> = {}): Record<string, string> => {
+    if (obj === null || typeof obj !== "object") {
+      return result
     }
 
-    // Create a new abort controller
-    abortControllerRef.current = new AbortController()
+    for (const [key, value] of Object.entries(obj)) {
+      const newPrefix = prefix ? `${prefix}.${key}` : key
 
-    // Validate inputs
-    let jsonData
-    try {
-      jsonData = JSON.parse(jsonInput)
-      originalJsonRef.current = jsonData // Store the original JSON structure
-      partialResultRef.current = JSON.parse(JSON.stringify(jsonData)) // Create a copy for partial results
-    } catch (error) {
-      setStatus({
-        type: "error",
-        message: "Invalid JSON input. Please check your JSON format.",
-      })
-      return
-    }
-
-    if (!apiKey) {
-      setStatus({
-        type: "error",
-        message: "Gemini API key is required",
-      })
-      return
-    }
-
-    setIsLoading(true)
-    setShowProgress(true)
-
-    try {
-      // Create a POST request with the JSON data
-      const response = await fetch("/api/translate", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          jsonData,
-          sourceLanguage,
-          targetLanguage,
-          apiKey,
-        }),
-        signal: abortControllerRef.current.signal,
-      })
-
-      if (!response.ok || !response.body) {
-        let errorMessage = "Failed to translate"
-        try {
-          const errorData = await response.json()
-          errorMessage = errorData.error || `HTTP error! status: ${response.status}`
-        } catch {
-          errorMessage = `HTTP error! status: ${response.status}`
-        }
-        throw new Error(errorMessage)
-      }
-
-      // Process the stream
-      const reader = response.body.getReader()
-      const decoder = new TextDecoder()
-      let buffer = ""
-
-      while (true) {
-        const { done, value } = await reader.read()
-        if (done) break
-
-        // Decode the chunk and add it to our buffer
-        buffer += decoder.decode(value, { stream: true })
-
-        // Process complete messages
-        const lines = buffer.split("\n")
-        buffer = lines.pop() || "" // Keep the last incomplete chunk in the buffer
-
-        for (const line of lines) {
-          if (line.trim()) {
-            try {
-              const data = JSON.parse(line)
-              handleStreamMessage(data)
-            } catch (e) {
-              console.error("Error parsing message:", e, "Line:", line)
-            }
+      if (typeof value === "string") {
+        result[newPrefix] = value
+      } else if (Array.isArray(value)) {
+        // Handle arrays
+        value.forEach((item, index) => {
+          const arrayPrefix = `${newPrefix}[${index}]`
+          if (typeof item === "string") {
+            result[arrayPrefix] = item
+          } else if (typeof item === "object" && item !== null) {
+            flattenJson(item, arrayPrefix, result)
           }
-        }
-      }
-
-      // Process any remaining data in the buffer
-      if (buffer.trim()) {
-        try {
-          const data = JSON.parse(buffer)
-          handleStreamMessage(data)
-        } catch (e) {
-          console.error("Error parsing final message:", e)
-        }
-      }
-    } catch (error: any) {
-      if (error.name !== "AbortError") {
-        console.error("Translation error:", error)
-        setStatus({
-          type: "error",
-          message: `Error: ${error.message || "Failed to translate"}`,
         })
-        setIsLoading(false)
+      } else if (typeof value === "object" && value !== null) {
+        flattenJson(value, newPrefix, result)
       }
     }
-  }
 
-  const handleStreamMessage = (data: any) => {
-    switch (data.type) {
-      case "init":
-        // Initialize with total keys
-        setTotalKeys(data.totalKeys)
-        break
-
-      case "progress":
-        // Update progress
-        setCompletedKeys(data.progress.completed)
-        setTotalKeys(data.progress.total)
-        setProgress((data.progress.completed / data.progress.total) * 100)
-
-        // Update current translation being processed
-        setCurrentTranslation({
-          key: data.key,
-          value: data.translation,
-        })
-
-        // Update partial result
-        if (partialResultRef.current && data.key) {
-          // Update the JSON structure with this translation
-          updateJsonWithTranslation(partialResultRef.current, data.key, data.translation)
-
-          // Update the displayed JSON
-          setTranslatedJson(JSON.stringify(partialResultRef.current, null, 2))
-        }
-        break
-
-      case "complete":
-        // Translation is complete
-        setTranslatedJson(JSON.stringify(data.translatedData, null, 2))
-        setProgress(100)
-        setIsLoading(false)
-        setIsStreamingComplete(true)
-        setStatus({
-          type: "success",
-          message: "Translation completed successfully!",
-        })
-        break
-
-      case "error":
-        // Handle error
-        setStatus({
-          type: "error",
-          message: `Error: ${data.error}`,
-        })
-        setIsLoading(false)
-        break
-    }
+    return result
   }
 
   // Helper function to update nested JSON with a translation
@@ -311,6 +167,185 @@ export default function TranslationForm() {
       }
     } catch (error) {
       console.error(`Error updating JSON with translation for path ${path}:`, error)
+    }
+  }
+
+  // Function to translate a single key
+  const translateKey = async (key: string, text: string): Promise<string> => {
+    try {
+      const response = await fetch("/api/translate", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          text,
+          sourceLanguage,
+          targetLanguage,
+          apiKey,
+        }),
+        signal: abortControllerRef.current?.signal,
+      })
+
+      if (!response.ok) {
+        let errorMessage = `HTTP error! status: ${response.status}`
+        try {
+          const errorData = await response.json()
+          errorMessage = errorData.error || errorMessage
+        } catch {
+          // If we can't parse the error, use the default message
+        }
+        throw new Error(errorMessage)
+      }
+
+      const data = await response.json()
+      return data.translation
+    } catch (error) {
+      console.error(`Error translating key ${key}:`, error)
+      throw error
+    }
+  }
+
+  const handleTranslate = async () => {
+    // Reset previous results
+    setTranslatedJson("")
+    setStatus(null)
+    setProgress(0)
+    setCompletedKeys(0)
+    setTotalKeys(0)
+    setShowProgress(false)
+    setIsTranslationComplete(false)
+    setCurrentTranslation(null)
+
+    // Abort any existing request
+    if (abortControllerRef.current) {
+      abortControllerRef.current.abort()
+    }
+
+    // Create a new abort controller
+    abortControllerRef.current = new AbortController()
+
+    // Validate inputs
+    let jsonData
+    try {
+      jsonData = JSON.parse(jsonInput)
+      originalJsonRef.current = jsonData
+      translatedJsonRef.current = JSON.parse(JSON.stringify(jsonData))
+    } catch (error) {
+      setStatus({
+        type: "error",
+        message: "Invalid JSON input. Please check your JSON format.",
+      })
+      return
+    }
+
+    if (!apiKey) {
+      setStatus({
+        type: "error",
+        message: "Gemini API key is required",
+      })
+      return
+    }
+
+    setIsLoading(true)
+    setShowProgress(true)
+
+    try {
+      // Flatten the JSON to process keys one by one
+      const flattenedJson = flattenJson(jsonData)
+      const keys = Object.keys(flattenedJson)
+      setTotalKeys(keys.length)
+
+      // Process each key one by one
+      let completed = 0
+      let errorCount = 0
+      const maxErrors = 3 // Maximum number of consecutive errors before giving up
+
+      for (const key of keys) {
+        const text = flattenedJson[key]
+
+        try {
+          // Skip if not a string or empty
+          if (typeof text !== "string" || !text.trim()) {
+            updateJsonWithTranslation(translatedJsonRef.current, key, text)
+          } else {
+            // Update current translation being processed
+            setCurrentTranslation({
+              key,
+              value: "Translating...",
+            })
+
+            // Translate the text
+            const translation = await translateKey(key, text)
+
+            // Update the JSON with the translation
+            updateJsonWithTranslation(translatedJsonRef.current, key, translation)
+
+            // Update current translation display
+            setCurrentTranslation({
+              key,
+              value: translation,
+            })
+
+            // Reset error count on success
+            errorCount = 0
+          }
+
+          // Update progress
+          completed++
+          setCompletedKeys(completed)
+          setProgress((completed / keys.length) * 100)
+
+          // Update the displayed JSON
+          setTranslatedJson(JSON.stringify(translatedJsonRef.current, null, 2))
+
+          // Add a small delay between requests to avoid rate limiting
+          await new Promise((resolve) => setTimeout(resolve, 100))
+        } catch (error: any) {
+          console.error(`Translation error for key ${key}:`, error)
+
+          // Use original text as fallback
+          updateJsonWithTranslation(translatedJsonRef.current, key, text)
+
+          // Update progress even on error
+          completed++
+          setCompletedKeys(completed)
+          setProgress((completed / keys.length) * 100)
+
+          // Update the displayed JSON
+          setTranslatedJson(JSON.stringify(translatedJsonRef.current, null, 2))
+
+          // Count consecutive errors
+          errorCount++
+
+          // If we hit too many consecutive errors, stop
+          if (errorCount >= maxErrors) {
+            throw new Error(`Too many consecutive errors (${maxErrors}). Last error: ${error.message}`)
+          }
+        }
+
+        // Check if the operation was aborted
+        if (abortControllerRef.current?.signal.aborted) {
+          throw new Error("Translation cancelled")
+        }
+      }
+
+      // Translation is complete
+      setIsTranslationComplete(true)
+      setStatus({
+        type: "success",
+        message: "Translation completed successfully!",
+      })
+    } catch (error: any) {
+      if (error.name !== "AbortError" && error.message !== "Translation cancelled") {
+        console.error("Translation process error:", error)
+        setStatus({
+          type: "error",
+          message: `Error: ${error.message || "Failed to translate"}`,
+        })
+      }
+    } finally {
+      setIsLoading(false)
     }
   }
 
@@ -502,13 +537,13 @@ export default function TranslationForm() {
           <CardContent className="pt-6">
             <div className="flex justify-between items-center mb-4">
               <div className="flex items-center">
-                {isStreamingComplete ? (
+                {isTranslationComplete ? (
                   <Check className="h-5 w-5 text-emerald-500 mr-2" />
                 ) : (
                   <Loader2 className="h-5 w-5 text-amber-500 mr-2 animate-spin" />
                 )}
                 <Label htmlFor="jsonOutput" className="text-lg font-medium text-emerald-700">
-                  {isStreamingComplete ? "Translated JSON" : "Live Translation"}
+                  {isTranslationComplete ? "Translated JSON" : "Live Translation"}
                 </Label>
               </div>
               <div className="flex gap-2">
