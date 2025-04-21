@@ -23,13 +23,19 @@ export async function POST(request: NextRequest) {
       return Response.json({ translation: text })
     }
 
-    // Create the prompt for translation
-    const prompt = `Translate this phrase or vocabulary: ${text} to ${targetLanguage} from ${sourceLanguage}. 
-Give me only the translation. If there's an equivalent phrase in ${targetLanguage} language, provide that phrase. 
-Be the best for UX writing and SEO writing: keep it short, natural, clear, and human-friendly. Prioritize meaning, 
-tone, and context over literal translation.
+    // Create the prompt for translation with clearer instructions
+    const prompt = `Translate this text from ${sourceLanguage} to ${targetLanguage}: "${text}"
 
-IMPORTANT: Don't translate variables. Variables are defined like this: {word} these should be kept exactly like in the original text.`
+IMPORTANT INSTRUCTIONS:
+1. Provide ONLY the direct translation with no additional text, explanations, or notes
+2. Maintain all formatting, including any HTML tags
+3. DO NOT add any variables or placeholders that weren't in the original text
+4. DO NOT add any text like {word}, {en}, {variable}, etc.
+5. If the original text contains placeholders like {name} or {count}, keep them EXACTLY as they are
+6. Keep the translation natural and appropriate for the target language
+7. Preserve the tone and style of the original text
+
+Your response should contain ONLY the translated text.`
 
     // Make the API request to Gemini
     const response = await axios.post(
