@@ -73,12 +73,16 @@ export default function TranslationForm() {
   const originalJsonRef = useRef<any>(null)
   const translatedJsonRef = useRef<any>(null)
   const [showStarModal, setShowStarModal] = useState(false)
+  const modalTimerRef = useRef<NodeJS.Timeout | null>(null)
 
-  // Clean up abort controller on unmount
+  // Clean up abort controller and timer on unmount
   useEffect(() => {
     return () => {
       if (abortControllerRef.current) {
         abortControllerRef.current.abort()
+      }
+      if (modalTimerRef.current) {
+        clearTimeout(modalTimerRef.current)
       }
     }
   }, [])
@@ -248,6 +252,18 @@ export default function TranslationForm() {
     setCurrentTranslation(null)
     setWaitingForRateLimit(false)
     setRateLimitInfo(null)
+    setShowStarModal(false)
+
+    // Clear any existing modal timer
+    if (modalTimerRef.current) {
+      clearTimeout(modalTimerRef.current)
+      modalTimerRef.current = null
+    }
+
+    // Set a timer to show the modal after 10 seconds
+    modalTimerRef.current = setTimeout(() => {
+      setShowStarModal(true)
+    }, 10000) // 10 seconds
 
     // Abort any existing request
     if (abortControllerRef.current) {
@@ -264,6 +280,12 @@ export default function TranslationForm() {
       originalJsonRef.current = jsonData
       translatedJsonRef.current = JSON.parse(JSON.stringify(jsonData))
     } catch (error) {
+      // Clear the modal timer if validation fails
+      if (modalTimerRef.current) {
+        clearTimeout(modalTimerRef.current)
+        modalTimerRef.current = null
+      }
+
       setStatus({
         type: "error",
         message: "Invalid JSON input. Please check your JSON format.",
@@ -272,6 +294,12 @@ export default function TranslationForm() {
     }
 
     if (!apiKey) {
+      // Clear the modal timer if validation fails
+      if (modalTimerRef.current) {
+        clearTimeout(modalTimerRef.current)
+        modalTimerRef.current = null
+      }
+
       setStatus({
         type: "error",
         message: "Gemini API key is required",
@@ -366,8 +394,7 @@ export default function TranslationForm() {
         message: "Translation completed successfully!",
       })
 
-      // Show the star repo modal
-      setShowStarModal(true)
+      // Note: We don't need to show the modal here anymore since it's on a timer
     } catch (error: any) {
       if (error.name !== "AbortError" && error.message !== "Translation cancelled") {
         console.error("Translation process error:", error)
@@ -388,6 +415,13 @@ export default function TranslationForm() {
       abortControllerRef.current.abort()
       abortControllerRef.current = null
     }
+
+    // Clear the modal timer if translation is cancelled
+    if (modalTimerRef.current) {
+      clearTimeout(modalTimerRef.current)
+      modalTimerRef.current = null
+    }
+
     setIsLoading(false)
     setWaitingForRateLimit(false)
     setRateLimitInfo(null)
