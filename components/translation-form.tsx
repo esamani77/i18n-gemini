@@ -12,6 +12,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Card, CardContent } from "@/components/ui/card"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { Progress } from "@/components/ui/progress"
+import { ClientRateLimiter } from "@/lib/rate-limiter"
 
 const SAMPLE_JSON = {
   homepage: {
@@ -48,6 +49,9 @@ const LANGUAGES = [
   { code: "fa", name: "Persian" },
 ]
 
+// Create a rate limiter instance
+const rateLimiter = new ClientRateLimiter(15, 1500) // 15 RPM, 1500 RPD
+
 export default function TranslationForm() {
   const [apiKey, setApiKey] = useState("")
   const [sourceLanguage, setSourceLanguage] = useState("en")
@@ -62,6 +66,8 @@ export default function TranslationForm() {
   const [showProgress, setShowProgress] = useState(false)
   const [isTranslationComplete, setIsTranslationComplete] = useState(false)
   const [currentTranslation, setCurrentTranslation] = useState<{ key: string; value: string } | null>(null)
+  const [waitingForRateLimit, setWaitingForRateLimit] = useState(false)
+  const [rateLimitInfo, setRateLimitInfo] = useState<string | null>(null)
   const abortControllerRef = useRef<AbortController | null>(null)
   const originalJsonRef = useRef<any>(null)
   const translatedJsonRef = useRef<any>(null)
@@ -170,9 +176,16 @@ export default function TranslationForm() {
     }
   }
 
-  // Function to translate a single key
-  const translateKey = async (key: string, text: string): Promise<string> => {
+  // Function to translate a single key with rate limiting and retries
+  const translateKey = async (key: string, text: string, retryCount = 0): Promise<string> => {
     try {
+      // Wait for rate limit before making the request
+      setWaitingForRateLimit(true)
+      setRateLimitInfo("Checking rate limits...")
+      await rateLimiter.waitForRateLimit()
+      setWaitingForRateLimit(false)
+      setRateLimitInfo(null)
+
       const response = await fetch("/api/translate", {
         method: "POST",
         headers: {
@@ -187,6 +200,9 @@ export default function TranslationForm() {
         signal: abortControllerRef.current?.signal,
       })
 
+      // Record the request after it's made
+      rateLimiter.recordRequest()
+
       if (!response.ok) {
         let errorMessage = `HTTP error! status: ${response.status}`
         try {
@@ -195,6 +211,15 @@ export default function TranslationForm() {
         } catch {
           // If we can't parse the error, use the default message
         }
+
+        // If we get a 429 (Too Many Requests) or 500 error, retry with exponential backoff
+        if ((response.status === 429 || response.status === 500) && retryCount < 3) {
+          const waitTime = Math.pow(2, retryCount) * 1000 // Exponential backoff: 1s, 2s, 4s
+          setRateLimitInfo(`Rate limit exceeded. Retrying in ${waitTime / 1000} seconds...`)
+          await new Promise((resolve) => setTimeout(resolve, waitTime))
+          return translateKey(key, text, retryCount + 1)
+        }
+
         throw new Error(errorMessage)
       }
 
@@ -203,6 +228,9 @@ export default function TranslationForm() {
     } catch (error) {
       console.error(`Error translating key ${key}:`, error)
       throw error
+    } finally {
+      setWaitingForRateLimit(false)
+      setRateLimitInfo(null)
     }
   }
 
@@ -216,6 +244,8 @@ export default function TranslationForm() {
     setShowProgress(false)
     setIsTranslationComplete(false)
     setCurrentTranslation(null)
+    setWaitingForRateLimit(false)
+    setRateLimitInfo(null)
 
     // Abort any existing request
     if (abortControllerRef.current) {
@@ -275,7 +305,7 @@ export default function TranslationForm() {
               value: "Translating...",
             })
 
-            // Translate the text
+            // Translate the text with rate limiting
             const translation = await translateKey(key, text)
 
             // Update the JSON with the translation
@@ -298,9 +328,6 @@ export default function TranslationForm() {
 
           // Update the displayed JSON
           setTranslatedJson(JSON.stringify(translatedJsonRef.current, null, 2))
-
-          // Add a small delay between requests to avoid rate limiting
-          await new Promise((resolve) => setTimeout(resolve, 100))
         } catch (error: any) {
           console.error(`Translation error for key ${key}:`, error)
 
@@ -346,6 +373,8 @@ export default function TranslationForm() {
       }
     } finally {
       setIsLoading(false)
+      setWaitingForRateLimit(false)
+      setRateLimitInfo(null)
     }
   }
 
@@ -355,6 +384,8 @@ export default function TranslationForm() {
       abortControllerRef.current = null
     }
     setIsLoading(false)
+    setWaitingForRateLimit(false)
+    setRateLimitInfo(null)
     setStatus({
       type: "error",
       message: "Translation cancelled",
@@ -487,7 +518,7 @@ export default function TranslationForm() {
           {isLoading ? (
             <>
               <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-              Translating...
+              {waitingForRateLimit ? "Waiting for rate limit..." : "Translating..."}
             </>
           ) : (
             "Translate JSON"
@@ -509,6 +540,16 @@ export default function TranslationForm() {
             </span>
           </div>
           <Progress value={progress} className="h-2" />
+
+          {rateLimitInfo && (
+            <div className="bg-amber-50 p-2 rounded border border-amber-100 mt-2">
+              <p className="text-xs text-amber-700 flex items-center">
+                <Loader2 className="h-3 w-3 mr-1 animate-spin" />
+                <span>{rateLimitInfo}</span>
+              </p>
+            </div>
+          )}
+
           {currentTranslation && (
             <div className="bg-emerald-50 p-2 rounded border border-emerald-100 mt-2">
               <p className="text-xs text-emerald-700">

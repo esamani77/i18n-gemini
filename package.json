@@ -60,8 +60,8 @@
     "zod": "^3.24.1",
     "fs-extra": "latest",
     "path": "latest",
-    "os": "latest",
-    "axios": "latest"
+    "axios": "latest",
+    "os": "latest"
   },
   "devDependencies": {
     "@types/node": "^22",
