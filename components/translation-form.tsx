@@ -13,6 +13,7 @@ import { Card, CardContent } from "@/components/ui/card"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { Progress } from "@/components/ui/progress"
 import { ClientRateLimiter } from "@/lib/client-rate-limiter"
+import { StarRepoModal } from "@/components/star-repo-modal"
 
 const SAMPLE_JSON = {
   homepage: {
@@ -71,6 +72,7 @@ export default function TranslationForm() {
   const abortControllerRef = useRef<AbortController | null>(null)
   const originalJsonRef = useRef<any>(null)
   const translatedJsonRef = useRef<any>(null)
+  const [showStarModal, setShowStarModal] = useState(false)
 
   // Clean up abort controller on unmount
   useEffect(() => {
@@ -363,6 +365,9 @@ export default function TranslationForm() {
         type: "success",
         message: "Translation completed successfully!",
       })
+
+      // Show the star repo modal
+      setShowStarModal(true)
     } catch (error: any) {
       if (error.name !== "AbortError" && error.message !== "Translation cancelled") {
         console.error("Translation process error:", error)
@@ -656,6 +661,9 @@ export default function TranslationForm() {
           </CardContent>
         </Card>
       )}
+
+      {/* Star Repository Modal */}
+      <StarRepoModal isOpen={showStarModal} onClose={() => setShowStarModal(false)} />
     </div>
   )
 }
