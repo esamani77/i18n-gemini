@@ -12,7 +12,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Card, CardContent } from "@/components/ui/card"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { Progress } from "@/components/ui/progress"
-import { ClientRateLimiter } from "@/lib/rate-limiter"
+import { ClientRateLimiter } from "@/lib/client-rate-limiter"
 
 const SAMPLE_JSON = {
   homepage: {
