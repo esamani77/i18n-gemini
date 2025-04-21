@@ -1,5 +1,4 @@
 import axios, { type AxiosInstance } from "axios"
-import { RateLimiter } from "./rate-limiter"
 
 interface TranslationOptions {
   query: string
@@ -10,10 +9,9 @@ interface TranslationOptions {
 export class GeminiTranslator {
   private apiKey: string
   private instance: AxiosInstance
-  private rateLimiter: RateLimiter
 
-  constructor() {
-    this.apiKey = process.env.GEMINI_API_KEY || ""
+  constructor(apiKey: string) {
+    this.apiKey = apiKey
     if (!this.apiKey) {
       throw new Error("Gemini API key is not set")
     }
@@ -24,9 +22,8 @@ export class GeminiTranslator {
         "Content-Type": "application/json",
         Accept: "application/json",
       },
+      timeout: 30000, // 30 seconds timeout
     })
-
-    this.rateLimiter = new RateLimiter()
   }
 
   // Helper to estimate token count based on text length
@@ -56,11 +53,8 @@ UX & SEO Writing Guidelines to follow:
 9. Keep the **base meaning** of the original phrase intact—do not oversimplify or reinterpret.
 10. NEVER translate text inside curly braces like {this} or {variable} - keep these exactly as they are.
 `
-      // Estimate tokens for the request (prompt + response)
-      const estimatedTokens = this.estimateTokens(prompt) + this.estimateTokens(query) * 2
-
-      // Wait for rate limit to allow the request
-      await this.rateLimiter.waitForRateLimit(estimatedTokens)
+      // Add a small delay to avoid rate limiting
+      await new Promise((resolve) => setTimeout(resolve, 100))
 
       const response = await this.instance.post("", {
         contents: [
@@ -74,9 +68,6 @@ UX & SEO Writing Guidelines to follow:
         ],
       })
 
-      // Record the request
-      await this.rateLimiter.recordRequest(estimatedTokens)
-
       const translation = response?.data?.candidates?.[0]?.content?.parts?.[0]?.text?.trim()
 
       if (!translation) {
@@ -84,9 +75,13 @@ UX & SEO Writing Guidelines to follow:
       }
 
       return translation
-    } catch (error) {
-      console.error("Translation error:", error)
-      throw error
+    } catch (error: any) {
+      console.error("Translation error:", error.message || error)
+      if (error.response) {
+        console.error("Response data:", error.response.data)
+        console.error("Response status:", error.response.status)
+      }
+      throw new Error(`Translation failed: ${error.message || "Unknown error"}`)
     }
   }
 }

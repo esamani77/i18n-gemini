@@ -158,8 +158,14 @@ export default function TranslationForm() {
       })
 
       if (!response.ok || !response.body) {
-        const errorText = await response.text().catch(() => "Unknown error")
-        throw new Error(`HTTP error! status: ${response.status}${errorText ? ` - ${errorText}` : ""}`)
+        let errorMessage = "Failed to translate"
+        try {
+          const errorData = await response.json()
+          errorMessage = errorData.error || `HTTP error! status: ${response.status}`
+        } catch {
+          errorMessage = `HTTP error! status: ${response.status}`
+        }
+        throw new Error(errorMessage)
       }
 
       // Process the stream

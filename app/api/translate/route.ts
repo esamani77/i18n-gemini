@@ -1,10 +1,5 @@
 import type { NextRequest } from "next/server"
 import { GeminiTranslator } from "@/lib/gemini-translator"
-import path from "path"
-import os from "os"
-
-// Create temporary directory for storing files
-const tempDir = path.join(os.tmpdir(), "next-translation")
 
 export async function POST(request: NextRequest) {
   try {
@@ -27,17 +22,28 @@ export async function POST(request: NextRequest) {
     }
 
     // Set API key if provided
-    if (apiKey) {
-      process.env.GEMINI_API_KEY = apiKey
-    } else if (!process.env.GEMINI_API_KEY) {
-      return new Response(JSON.stringify({ error: "Missing API key" }), {
-        status: 400,
-        headers: { "Content-Type": "application/json" },
-      })
+    let translator: GeminiTranslator
+    try {
+      if (apiKey) {
+        translator = new GeminiTranslator(apiKey)
+      } else {
+        return new Response(JSON.stringify({ error: "Missing API key" }), {
+          status: 400,
+          headers: { "Content-Type": "application/json" },
+        })
+      }
+    } catch (error) {
+      console.error("Error initializing translator:", error)
+      return new Response(
+        JSON.stringify({
+          error: error instanceof Error ? error.message : "Failed to initialize translator",
+        }),
+        {
+          status: 500,
+          headers: { "Content-Type": "application/json" },
+        },
+      )
     }
-
-    // Initialize the translator
-    const translator = new GeminiTranslator()
 
     // Flatten the JSON to process keys one by one
     const flattenedJson = flattenJson(jsonData)
@@ -268,13 +274,4 @@ function unflattenJson(flatJson: Record<string, string>, originalStructure: any)
   }
 
   return result
-}
-
-export const config = {
-  api: {
-    bodyParser: {
-      sizeLimit: "50mb",
-    },
-    responseLimit: "50mb",
-  },
 }
