@@ -5,6 +5,7 @@ import { usePathname } from "next/navigation"
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
 import { Github } from "lucide-react"
+import { LanguageSwitcher } from "@/components/language-switcher"
 
 export function SiteHeader() {
   const pathname = usePathname()
@@ -35,12 +36,13 @@ export function SiteHeader() {
                 Translator
               </Button>
             </Link>
-            <a href="https://github.com/esamani77/i18n-gemini" target="_blank" rel="noopener noreferrer">
+            <a href="https://github.com/esamani77" target="_blank" rel="noopener noreferrer">
               <Button variant="outline" size="icon">
                 <Github className="h-5 w-5" />
                 <span className="sr-only">GitHub</span>
               </Button>
             </a>
+            <LanguageSwitcher />
           </nav>
         </div>
       </div>

@@ -1,0 +1,89 @@
+{
+  "app": {
+    "title": "Translation API Client",
+    "description": "A modern client for translating JSON data between multiple languages"
+  },
+  "navigation": {
+    "home": "Home",
+    "translator": "Translator",
+    "back": "Back to Home"
+  },
+  "landing": {
+    "hero": {
+      "title": "Translate Your JSON Files with AI Precision",
+      "subtitle": "Fast, accurate, and structure-preserving translations powered by Google's Gemini API",
+      "cta": "Start Translating",
+      "github": "View on GitHub"
+    },
+    "features": {
+      "title": "Powerful Translation Features",
+      "multipleLanguages": {
+        "title": "Multiple Languages",
+        "description": "Translate your JSON files between numerous languages while preserving the original structure."
+      },
+      "fastProcessing": {
+        "title": "Fast Processing",
+        "description": "Optimized translation process with built-in rate limiting to ensure maximum throughput."
+      },
+      "securePrivate": {
+        "title": "Secure & Private",
+        "description": "Your API keys are stored locally and your data never leaves your browser except to call the API."
+      },
+      "structurePreservation": {
+        "title": "Structure Preservation",
+        "description": "Maintains your JSON structure perfectly, ensuring your application works flawlessly."
+      },
+      "progressTracking": {
+        "title": "Progress Tracking",
+        "description": "Real-time progress tracking with detailed statistics and estimated completion times."
+      },
+      "easyIntegration": {
+        "title": "Easy Integration",
+        "description": "Download translated files or copy directly to clipboard for seamless integration."
+      }
+    },
+    "cta": {
+      "title": "Ready to Translate Your JSON Files?",
+      "description": "Start using our powerful translation tool today and make your application accessible to users worldwide.",
+      "button": "Go to Translator"
+    }
+  },
+  "translator": {
+    "title": "JSON Translation Tool",
+    "subtitle": "Translate your JSON data between multiple languages",
+    "about": {
+      "title": "About This Translation Service",
+      "description": "This application uses Google's Gemini API to translate JSON data while preserving structure. The translation is performed with built-in rate limiting to respect API quotas. For large translations, the process may take several minutes."
+    },
+    "form": {
+      "apiKey": "Gemini API Key",
+      "addKey": "Add new API key",
+      "getKey": "Get your API key from",
+      "sourceLanguage": "Source Language",
+      "targetLanguage": "Target Language",
+      "jsonInput": "JSON Input",
+      "uploadFile": "Upload JSON file",
+      "translate": "Translate JSON",
+      "translating": "Translating...",
+      "waitingForRateLimit": "Waiting for rate limit...",
+      "cancel": "Cancel",
+      "processing": "Processing translation",
+      "keys": "keys",
+      "currentlyTranslating": "Currently translating",
+      "result": "Result",
+      "translatedJson": "Translated JSON",
+      "liveTranslation": "Live Translation",
+      "copy": "Copy",
+      "download": "Download",
+      "targetLanguageLabel": "Target language"
+    }
+  },
+  "footer": {
+    "poweredBy": "Powered by Google's Gemini API",
+    "copyright": "© {year} Translation API Client. All rights reserved."
+  },
+  "loading": {
+    "title": "Loading Translator...",
+    "description": "Please wait while we prepare the translation tools"
+  }
+}

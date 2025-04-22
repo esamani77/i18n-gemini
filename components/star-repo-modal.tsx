@@ -73,6 +73,19 @@ export function StarRepoModal({ isOpen, onClose }: StarRepoModalProps) {
               <Linkedin className="h-5 w-5" />
               <span>Connect on LinkedIn</span>
             </a>
+
+            <a
+              href="https://www.coffeebede.com/esamani77"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex justify-center w-full"
+            >
+              <img
+                className="w-full max-w-[240px]"
+                src="https://coffeebede.ir/DashboardTemplateV2/app-assets/images/banner/default-yellow.svg"
+                alt="Buy me a coffee"
+              />
+            </a>
           </div>
 
           <div className="mt-6 text-center text-sm text-slate-500 dark:text-slate-400">
