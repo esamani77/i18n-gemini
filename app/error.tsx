@@ -1,7 +1,7 @@
 "use client"
 
-import { redirect } from "next/navigation"
 import { useEffect } from "react"
+import { redirect } from "next/navigation"
 
 export default function GlobalError({
   error,
@@ -12,7 +12,7 @@ export default function GlobalError({
     // Log the error to an error reporting service
     console.error(error)
     // Redirect to the default locale's error page
-    redirect("/en/error")
+    redirect("/en")
   }, [error])
 
   // This is a fallback and should never be displayed

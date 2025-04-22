@@ -1,13 +1,8 @@
-"use client"
-
 import Link from "next/link"
-import { useTranslations } from "next-intl"
 import { Button } from "@/components/ui/button"
 import { Home } from "lucide-react"
 
 export default function NotFound() {
-  const t = useTranslations()
-
   return (
     <div className="flex flex-col items-center justify-center min-h-screen bg-gradient-to-b from-slate-50 to-slate-100 p-4">
       <div className="text-center max-w-md">
