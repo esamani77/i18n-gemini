@@ -2,7 +2,7 @@ import Link from "next/link"
 import { Button } from "@/components/ui/button"
 import { Home } from "lucide-react"
 
-export default function NotFound() {
+export default function LocaleNotFound() {
   return (
     <div className="flex flex-col items-center justify-center min-h-screen bg-gradient-to-b from-slate-50 to-slate-100 p-4">
       <div className="text-center max-w-md">

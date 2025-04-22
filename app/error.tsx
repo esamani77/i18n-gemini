@@ -11,7 +11,7 @@ export default function GlobalError({
   useEffect(() => {
     // Log the error to an error reporting service
     console.error(error)
-    // Redirect to the default locale's error page
+    // Redirect to the default locale
     redirect("/en")
   }, [error])
 
