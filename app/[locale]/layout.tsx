@@ -7,7 +7,6 @@ import { Suspense } from "react"
 import { LinkedInButton } from "@/components/linkedin-button"
 import { VercelAnalytics } from "@/components/vercel-analytics"
 import { SiteHeader } from "@/components/site-header"
-import { notFound } from "next/navigation"
 import { NextIntlClientProvider } from "next-intl"
 import { getMessages } from "next-intl/server"
 
@@ -31,8 +30,6 @@ export async function generateMetadata({ params: { locale } }: Props): Promise<M
 const locales = ["en", "fr", "fa"]
 
 export default async function RootLayout({ children, params: { locale } }: Props) {
-  // Validate that the incoming `locale` parameter is valid
-  if (!locales.includes(locale)) notFound()
 
   // Load the messages for the current locale
   const messages = await getMessages({ locale })
