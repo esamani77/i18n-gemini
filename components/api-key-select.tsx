@@ -10,9 +10,10 @@ interface ApiKeySelectProps {
   value: string
   onChange: (value: string) => void
   onAddNew: () => void
+  refreshTrigger?: number // Add this prop to trigger refreshes
 }
 
-export function ApiKeySelect({ value, onChange, onAddNew }: ApiKeySelectProps) {
+export function ApiKeySelect({ value, onChange, onAddNew, refreshTrigger = 0 }: ApiKeySelectProps) {
   const [isOpen, setIsOpen] = useState(false)
   const [apiKeys, setApiKeys] = useState<ApiKeyEntry[]>([])
   const [searchQuery, setSearchQuery] = useState("")
@@ -21,7 +22,7 @@ export function ApiKeySelect({ value, onChange, onAddNew }: ApiKeySelectProps) {
   // Load API keys from storage
   useEffect(() => {
     setApiKeys(apiKeyStorage.getAll())
-  }, [])
+  }, [refreshTrigger]) // Add refreshTrigger as a dependency
 
   // Handle click outside to close dropdown
   useEffect(() => {

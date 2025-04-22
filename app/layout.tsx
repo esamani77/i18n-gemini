@@ -6,6 +6,7 @@ import { ThemeProvider } from "@/components/theme-provider"
 import { Suspense } from "react"
 import { LinkedInButton } from "@/components/linkedin-button"
 import { VercelAnalytics } from "@/components/vercel-analytics"
+import { SiteHeader } from "@/components/site-header"
 
 const inter = Inter({ subsets: ["latin"] })
 
@@ -24,6 +25,7 @@ export default function RootLayout({
     <html lang="en">
       <body className={inter.className}>
         <ThemeProvider attribute="class" defaultTheme="light" enableSystem>
+          <SiteHeader />
           <Suspense fallback={<div>Loading...</div>}>{children}</Suspense>
           <LinkedInButton />
           <VercelAnalytics />

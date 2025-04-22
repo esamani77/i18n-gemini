@@ -2,7 +2,7 @@
 
 import type React from "react"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { X } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -22,13 +22,14 @@ export function AddApiKeyModal({ isOpen, onClose, onKeyAdded }: AddApiKeyModalPr
   const [isVisible, setIsVisible] = useState(false)
 
   // Handle visibility with animation
-  useState(() => {
+  useEffect(() => {
     if (isOpen) {
       setIsVisible(true)
     } else {
-      setTimeout(() => setIsVisible(false), 300)
+      const timer = setTimeout(() => setIsVisible(false), 300)
+      return () => clearTimeout(timer)
     }
-  })
+  }, [isOpen])
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()

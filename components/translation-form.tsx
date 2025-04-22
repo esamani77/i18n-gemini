@@ -3,7 +3,7 @@
 import type React from "react"
 
 import { useState, useRef, useEffect } from "react"
-import { Loader2, Check, AlertCircle } from "lucide-react"
+import { Loader2, Check, AlertCircle, Plus } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -78,6 +78,8 @@ export default function TranslationForm() {
   const [showStarModal, setShowStarModal] = useState(false)
   const modalTimerRef = useRef<NodeJS.Timeout | null>(null)
   const [showAddApiKeyModal, setShowAddApiKeyModal] = useState(false)
+  // Add a refreshTrigger state to force ApiKeySelect to update
+  const [apiKeyRefreshTrigger, setApiKeyRefreshTrigger] = useState(0)
 
   // Load saved API keys on mount
   useEffect(() => {
@@ -457,11 +459,14 @@ export default function TranslationForm() {
     URL.revokeObjectURL(url)
   }
 
+  // Update the handleApiKeyAdded function
   const handleApiKeyAdded = (keyId: string) => {
     const keys = apiKeyStorage.getAll()
     const newKey = keys.find((k) => k.id === keyId)
     if (newKey) {
       setApiKey(newKey.value)
+      // Increment the refresh trigger to force a refresh of the ApiKeySelect component
+      setApiKeyRefreshTrigger((prev) => prev + 1)
     }
   }
 
@@ -469,11 +474,28 @@ export default function TranslationForm() {
     <div className="space-y-6">
       <div className="grid gap-4 md:grid-cols-2">
         <div>
-          <Label htmlFor="apiKey" className="text-sm font-medium">
-            Gemini API Key
-          </Label>
+          <div className="flex justify-between items-center mb-1">
+            <Label htmlFor="apiKey" className="text-sm font-medium">
+              Gemini API Key
+            </Label>
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
+              onClick={() => setShowAddApiKeyModal(true)}
+              className="h-8 w-8 p-0 text-emerald-600 hover:text-emerald-700 hover:bg-emerald-50"
+            >
+              <Plus className="h-4 w-4" />
+              <span className="sr-only">Add new API key</span>
+            </Button>
+          </div>
           <div className="mt-1">
-            <ApiKeySelect value={apiKey} onChange={setApiKey} onAddNew={() => setShowAddApiKeyModal(true)} />
+            <ApiKeySelect
+              value={apiKey}
+              onChange={setApiKey}
+              onAddNew={() => setShowAddApiKeyModal(true)}
+              refreshTrigger={apiKeyRefreshTrigger}
+            />
           </div>
           <div className="mt-1 text-xs text-slate-500 flex items-center">
             <span>Get your API key from </span>
@@ -696,7 +718,7 @@ export default function TranslationForm() {
                 id="jsonOutput"
                 value={translatedJson}
                 readOnly
-                className="font-mono text-sm h-64 bg-white border-slate-200 focus:border-emerald-300 focus:ring-emerald-200"
+                className="mt-1 font-mono text-sm h-64 bg-white border-slate-200 focus:border-emerald-300 focus:ring-emerald-200"
               />
             </div>
             <div className="mt-3 text-xs text-slate-500 flex items-center justify-between">
