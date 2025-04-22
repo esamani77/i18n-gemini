@@ -101,6 +101,9 @@ importers:
       '@vercel/analytics':
         specifier: latest
         version: 1.5.0(@remix-run/react@2.16.5(react-dom@19.0.0(react@19.0.0))(react@19.0.0)(typescript@5.0.2))(@sveltejs/kit@2.20.7(@sveltejs/vite-plugin-svelte@5.0.3(svelte@5.28.1)(vite@6.3.2(@types/node@22.0.0)(jiti@1.21.7)(yaml@2.7.1)))(svelte@5.28.1)(vite@6.3.2(@types/node@22.0.0)(jiti@1.21.7)(yaml@2.7.1)))(next@15.2.4(react-dom@19.0.0(react@19.0.0))(react@19.0.0))(react@19.0.0)(svelte@5.28.1)(vue-router@4.5.0(vue@3.5.13(typescript@5.0.2)))(vue@3.5.13(typescript@5.0.2))
+      '@vercel/speed-insights':
+        specifier: latest
+        version: 1.2.0(@sveltejs/kit@2.20.7(@sveltejs/vite-plugin-svelte@5.0.3(svelte@5.28.1)(vite@6.3.2(@types/node@22.0.0)(jiti@1.21.7)(yaml@2.7.1)))(svelte@5.28.1)(vite@6.3.2(@types/node@22.0.0)(jiti@1.21.7)(yaml@2.7.1)))(next@15.2.4(react-dom@19.0.0(react@19.0.0))(react@19.0.0))(react@19.0.0)(svelte@5.28.1)(vue-router@4.5.0(vue@3.5.13(typescript@5.0.2)))(vue@3.5.13(typescript@5.0.2))
       autoprefixer:
         specifier: ^10.4.20
         version: 10.4.20(postcss@8.0.0)
@@ -122,6 +125,9 @@ importers:
       embla-carousel-react:
         specifier: 8.5.1
         version: 8.5.1(react@19.0.0)
+      fs:
+        specifier: latest
+        version: 0.0.1-security
       fs-extra:
         specifier: latest
         version: 11.3.0
@@ -1487,6 +1493,29 @@ packages:
       vue-router:
         optional: true
 
+  '@vercel/speed-insights@1.2.0':
+    resolution: {integrity: sha512-y9GVzrUJ2xmgtQlzFP2KhVRoCglwfRQgjyfY607aU0hh0Un6d0OUyrJkjuAlsV18qR4zfoFPs/BiIj9YDS6Wzw==}
+    peerDependencies:
+      '@sveltejs/kit': ^1 || ^2
+      next: '>= 13'
+      react: ^18 || ^19 || ^19.0.0-rc
+      svelte: '>= 4'
+      vue: ^3
+      vue-router: ^4
+    peerDependenciesMeta:
+      '@sveltejs/kit':
+        optional: true
+      next:
+        optional: true
+      react:
+        optional: true
+      svelte:
+        optional: true
+      vue:
+        optional: true
+      vue-router:
+        optional: true
+
   '@vue/compiler-core@3.5.13':
     resolution: {integrity: sha512-oOdAkwqUfW1WqpwSYJce06wvt6HljgY3fGeM9NcVA1HaYOij3mZG9Rkysn0OHuyUAGMbEbARIpsG+LPVlBJ5/Q==}
 
@@ -1770,8 +1799,8 @@ packages:
   eastasianwidth@0.2.0:
     resolution: {integrity: sha512-I88TYZWc9XiYHRQ4/3c5rjjfgkjhLyW2luGIheGERbNQ6OY7yTybanSpDXZa8y7VUP9YmDcYa+eyq4ca7iLqWA==}
 
-  electron-to-chromium@1.5.139:
-    resolution: {integrity: sha512-GGnRYOTdN5LYpwbIr0rwP/ZHOQSvAF6TG0LSzp28uCBb9JiXHJGmaaKw29qjNJc5bGnnp6kXJqRnGMQoELwi5w==}
+  electron-to-chromium@1.5.140:
+    resolution: {integrity: sha512-o82Rj+ONp4Ip7Cl1r7lrqx/pXhbp/lh9DpKcMNscFJdh8ebyRofnc7Sh01B4jx403RI0oqTBvlZ7OBIZLMr2+Q==}
 
   embla-carousel-react@8.5.1:
     resolution: {integrity: sha512-z9Y0K84BJvhChXgqn2CFYbfEi6AwEr+FFVVKm/MqbTQ2zIzO1VQri6w67LcfpVF0AjbhwVMywDZqY4alYkjW5w==}
@@ -1879,6 +1908,9 @@ packages:
   fs-extra@11.3.0:
     resolution: {integrity: sha512-Z4XaCL6dUDHfP/jT25jJKMmtxvuwbkrD1vNSMFlo9lNLY2c5FHYSQgHPRZUjAB26TpDEoW9HCOgplrdbaPV/ew==}
     engines: {node: '>=14.14'}
+
+  fs@0.0.1-security:
+    resolution: {integrity: sha512-3XY9e1pP0CVEUCdj5BmfIZxRBTSDycnbqhIOGec9QYtmVH2fbLpj86CFWkrNOkt/Fvty4KZG5lTglL9j/gJ87w==}
 
   fsevents@2.3.3:
     resolution: {integrity: sha512-5xoDfX+fL7faATnagmWPpbFtwh/R77WmMMqqHGS65C3vvB0YHrgF+B1YmZ3441tMj5n63k0212XNoJwzlhffQw==}
@@ -3791,6 +3823,15 @@ snapshots:
       vue: 3.5.13(typescript@5.0.2)
       vue-router: 4.5.0(vue@3.5.13(typescript@5.0.2))
 
+  '@vercel/speed-insights@1.2.0(@sveltejs/kit@2.20.7(@sveltejs/vite-plugin-svelte@5.0.3(svelte@5.28.1)(vite@6.3.2(@types/node@22.0.0)(jiti@1.21.7)(yaml@2.7.1)))(svelte@5.28.1)(vite@6.3.2(@types/node@22.0.0)(jiti@1.21.7)(yaml@2.7.1)))(next@15.2.4(react-dom@19.0.0(react@19.0.0))(react@19.0.0))(react@19.0.0)(svelte@5.28.1)(vue-router@4.5.0(vue@3.5.13(typescript@5.0.2)))(vue@3.5.13(typescript@5.0.2))':
+    optionalDependencies:
+      '@sveltejs/kit': 2.20.7(@sveltejs/vite-plugin-svelte@5.0.3(svelte@5.28.1)(vite@6.3.2(@types/node@22.0.0)(jiti@1.21.7)(yaml@2.7.1)))(svelte@5.28.1)(vite@6.3.2(@types/node@22.0.0)(jiti@1.21.7)(yaml@2.7.1))
+      next: 15.2.4(react-dom@19.0.0(react@19.0.0))(react@19.0.0)
+      react: 19.0.0
+      svelte: 5.28.1
+      vue: 3.5.13(typescript@5.0.2)
+      vue-router: 4.5.0(vue@3.5.13(typescript@5.0.2))
+
   '@vue/compiler-core@3.5.13':
     dependencies:
       '@babel/parser': 7.27.0
@@ -3913,7 +3954,7 @@ snapshots:
   browserslist@4.24.4:
     dependencies:
       caniuse-lite: 1.0.30001715
-      electron-to-chromium: 1.5.139
+      electron-to-chromium: 1.5.140
       node-releases: 2.0.19
       update-browserslist-db: 1.1.3(browserslist@4.24.4)
 
@@ -4076,7 +4117,7 @@ snapshots:
 
   eastasianwidth@0.2.0: {}
 
-  electron-to-chromium@1.5.139: {}
+  electron-to-chromium@1.5.140: {}
 
   embla-carousel-react@8.5.1(react@19.0.0):
     dependencies:
@@ -4194,6 +4235,8 @@ snapshots:
       graceful-fs: 4.2.11
       jsonfile: 6.1.0
       universalify: 2.0.1
+
+  fs@0.0.1-security: {}
 
   fsevents@2.3.3:
     optional: true

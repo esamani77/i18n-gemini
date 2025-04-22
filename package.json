@@ -67,7 +67,9 @@
     "path": "latest",
     "axios": "latest",
     "os": "latest",
-    "@vercel/analytics": "latest"
+    "fs": "latest",
+    "@vercel/analytics": "latest",
+    "@vercel/speed-insights": "latest"
   },
   "devDependencies": {
     "@types/node": "^22",

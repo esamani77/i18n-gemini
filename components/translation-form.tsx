@@ -14,6 +14,9 @@ import { Alert, AlertDescription } from "@/components/ui/alert"
 import { Progress } from "@/components/ui/progress"
 import { ClientRateLimiter } from "@/lib/client-rate-limiter"
 import { StarRepoModal } from "@/components/star-repo-modal"
+import { ApiKeySelect } from "@/components/api-key-select"
+import { AddApiKeyModal } from "@/components/add-api-key-modal"
+import { apiKeyStorage } from "@/lib/api-key-storage"
 
 const SAMPLE_JSON = {
   homepage: {
@@ -74,6 +77,15 @@ export default function TranslationForm() {
   const translatedJsonRef = useRef<any>(null)
   const [showStarModal, setShowStarModal] = useState(false)
   const modalTimerRef = useRef<NodeJS.Timeout | null>(null)
+  const [showAddApiKeyModal, setShowAddApiKeyModal] = useState(false)
+
+  // Load saved API keys on mount
+  useEffect(() => {
+    const savedKeys = apiKeyStorage.getAll()
+    if (savedKeys.length > 0) {
+      setApiKey(savedKeys[0].value)
+    }
+  }, [])
 
   // Clean up abort controller and timer on unmount
   useEffect(() => {
@@ -445,6 +457,14 @@ export default function TranslationForm() {
     URL.revokeObjectURL(url)
   }
 
+  const handleApiKeyAdded = (keyId: string) => {
+    const keys = apiKeyStorage.getAll()
+    const newKey = keys.find((k) => k.id === keyId)
+    if (newKey) {
+      setApiKey(newKey.value)
+    }
+  }
+
   return (
     <div className="space-y-6">
       <div className="grid gap-4 md:grid-cols-2">
@@ -452,14 +472,9 @@ export default function TranslationForm() {
           <Label htmlFor="apiKey" className="text-sm font-medium">
             Gemini API Key
           </Label>
-          <Input
-            id="apiKey"
-            type="password"
-            placeholder="Enter your Gemini API key"
-            value={apiKey}
-            onChange={(e) => setApiKey(e.target.value)}
-            className="mt-1"
-          />
+          <div className="mt-1">
+            <ApiKeySelect value={apiKey} onChange={setApiKey} onAddNew={() => setShowAddApiKeyModal(true)} />
+          </div>
           <div className="mt-1 text-xs text-slate-500 flex items-center">
             <span>Get your API key from </span>
             <a
@@ -698,6 +713,13 @@ export default function TranslationForm() {
 
       {/* Star Repository Modal */}
       <StarRepoModal isOpen={showStarModal} onClose={() => setShowStarModal(false)} />
+
+      {/* Add API Key Modal */}
+      <AddApiKeyModal
+        isOpen={showAddApiKeyModal}
+        onClose={() => setShowAddApiKeyModal(false)}
+        onKeyAdded={handleApiKeyAdded}
+      />
     </div>
   )
 }
