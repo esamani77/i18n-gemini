@@ -5,8 +5,13 @@ import "./globals.css"
 import { ThemeProvider } from "@/components/theme-provider"
 import { Suspense } from "react"
 import { LinkedInButton } from "@/components/linkedin-button"
-import { VercelAnalytics } from "@/components/vercel-analytics"
 import { SiteHeader } from "@/components/site-header"
+// Make sure we're not importing the deleted component
+// The current imports look good, but let's ensure there are no other references to VercelAnalytics
+
+// The layout looks correct with the official Vercel components:
+import { Analytics } from "@vercel/analytics/next"
+import { SpeedInsights } from "@vercel/speed-insights/next"
 
 const inter = Inter({ subsets: ["latin"] })
 
@@ -28,7 +33,8 @@ export default function RootLayout({
           <SiteHeader />
           <Suspense fallback={<div>Loading...</div>}>{children}</Suspense>
           <LinkedInButton />
-          <VercelAnalytics />
+          <Analytics />
+          <SpeedInsights />
         </ThemeProvider>
       </body>
     </html>

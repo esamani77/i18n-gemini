@@ -1,0 +1,78 @@
+{
+  "hero": {
+    "title": "Translate Your JSON Files with AI Precision",
+    "subtitle": "Fast, accurate, and structure-preserving translations powered by Google's Gemini API",
+    "translateButton": "Start Translating",
+    "improveButton": "Improve Translations",
+    "articleButton": "Translate Articles",
+    "githubButton": "View on GitHub"
+  },
+  "features": {
+    "title": "Powerful Translation Features",
+    "cards": [
+      {
+        "title": "Multiple Languages",
+        "description": "Translate your JSON files between numerous languages while preserving the original structure."
+      },
+      {
+        "title": "Fast Processing",
+        "description": "Optimized translation process with built-in rate limiting to ensure maximum throughput."
+      },
+      {
+        "title": "Secure & Private",
+        "description": "Your API keys are stored locally and your data never leaves your browser except to call the API."
+      },
+      {
+        "title": "Structure Preservation",
+        "description": "Maintains your JSON structure perfectly, ensuring your application works flawlessly."
+      },
+      {
+        "title": "Progress Tracking",
+        "description": "Real-time progress tracking with detailed statistics and estimated completion times."
+      },
+      {
+        "title": "Easy Integration",
+        "description": "Download translated files or copy directly to clipboard for seamless integration."
+      }
+    ]
+  },
+  "tools": {
+    "title": "Powerful Translation Tools",
+    "subtitle": "Choose the right tool for your translation needs",
+    "cards": [
+      {
+        "title": "JSON Translator",
+        "description": "Translate entire JSON files while preserving structure and format. Perfect for localizing applications and websites.",
+        "button": "Translate JSON",
+        "color": "emerald"
+      },
+      {
+        "title": "Translation Improver",
+        "description": "Optimize and refine existing translations to be more concise and natural. Ideal for polishing machine translations.",
+        "button": "Improve Translations",
+        "color": "purple"
+      },
+      {
+        "title": "Article Translator",
+        "description": "Translate long-form content like articles, blog posts, and documentation with high accuracy and natural language.",
+        "button": "Translate Articles",
+        "color": "blue"
+      }
+    ]
+  },
+  "cta": {
+    "title": "Ready to Translate Your Content?",
+    "subtitle": "Start using our powerful translation tools today and make your application accessible to users worldwide.",
+    "button": "Get Started"
+  },
+  "footer": {
+    "copyright": "© 2023 Translation API Client. All rights reserved.",
+    "links": {
+      "github": "GitHub",
+      "linkedin": "LinkedIn",
+      "translator": "Translator",
+      "improver": "Improver",
+      "articles": "Articles"
+    }
+  }
+}
