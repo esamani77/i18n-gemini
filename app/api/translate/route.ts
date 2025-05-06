@@ -5,7 +5,7 @@ export async function POST(request: NextRequest) {
   try {
     // Parse the request body
     const body = await request.json()
-    const { text, targetLanguage, sourceLanguage = "en", apiKey } = body
+    const { text, targetLanguage, sourceLanguage = "en", apiKey, prompt } = body
 
     // Validate required fields
     if (!text) {
@@ -23,8 +23,10 @@ export async function POST(request: NextRequest) {
       return Response.json({ translation: text })
     }
 
-    // Create the prompt for translation with clearer instructions
-    const prompt = `Translate this text from ${sourceLanguage} to ${targetLanguage}: "${text}"
+    // Use the provided prompt or fall back to a default
+    const translationPrompt =
+      prompt ||
+      `Translate this text from ${sourceLanguage} to ${targetLanguage}: "${text}"
 
 IMPORTANT INSTRUCTIONS:
 1. Provide ONLY the direct translation with no additional text, explanations, or notes
@@ -45,7 +47,7 @@ Your response should contain ONLY the translated text.`
           {
             parts: [
               {
-                text: prompt,
+                text: translationPrompt,
               },
             ],
           },

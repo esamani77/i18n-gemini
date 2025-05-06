@@ -24,7 +24,7 @@
     "@radix-ui/react-menubar": "1.1.4",
     "@radix-ui/react-navigation-menu": "1.2.3",
     "@radix-ui/react-popover": "1.1.4",
-    "@radix-ui/react-progress": "1.1.1",
+    "@radix-ui/react-progress": "latest",
     "@radix-ui/react-radio-group": "1.2.2",
     "@radix-ui/react-scroll-area": "1.2.2",
     "@radix-ui/react-select": "2.1.4",
@@ -69,8 +69,7 @@
     "os": "latest",
     "fs": "latest",
     "@vercel/analytics": "latest",
-    "@vercel/speed-insights": "latest",
-    "next-intl": "latest"
+    "@vercel/speed-insights": "latest"
   },
   "devDependencies": {
     "@types/node": "^22",

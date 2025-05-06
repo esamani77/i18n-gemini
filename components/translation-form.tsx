@@ -8,7 +8,6 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Card, CardContent } from "@/components/ui/card"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { Progress } from "@/components/ui/progress"
@@ -17,6 +16,8 @@ import { StarRepoModal } from "@/components/star-repo-modal"
 import { ApiKeySelect } from "@/components/api-key-select"
 import { AddApiKeyModal } from "@/components/add-api-key-modal"
 import { apiKeyStorage } from "@/lib/api-key-storage"
+import { LanguageDropdown } from "@/components/language-dropdown"
+import { PromptEditor } from "@/components/prompt-editor"
 
 const SAMPLE_JSON = {
   homepage: {
@@ -39,19 +40,25 @@ const SAMPLE_JSON = {
   },
 }
 
-const LANGUAGES = [
-  { code: "en", name: "English" },
-  { code: "es", name: "Spanish" },
-  { code: "fr", name: "French" },
-  { code: "de", name: "German" },
-  { code: "it", name: "Italian" },
-  { code: "zh", name: "Chinese" },
-  { code: "ja", name: "Japanese" },
-  { code: "ko", name: "Korean" },
-  { code: "ru", name: "Russian" },
-  { code: "ar", name: "Arabic" },
-  { code: "fa", name: "Persian" },
-]
+// Default translation prompt
+const DEFAULT_TRANSLATION_PROMPT = `Translate this phrase or vocabulary: {text} to {targetLanguage} from {sourceLanguage}. 
+Give me only the translation. If there's an equivalent phrase in {targetLanguage} language, provide that phrase. 
+Be the best for UX writing and SEO writing: keep it short, natural, clear, and human-friendly. Prioritize meaning, 
+tone, and context over literal translation.
+
+IMPORTANT: Don't translate variables. Variables are defined like this: {word} these should be kept exactly like in the original text.
+
+UX & SEO Writing Guidelines to follow:
+1. Use clear, keyword-rich language.
+2. Prioritize plain, natural tone—avoid robotic or overly formal phrasing.
+3. Keep translations concise; remove unnecessary words.
+4. Make content scannable and readable (especially for web/app UI).
+5. If applicable, favor phrases that work well in headings or buttons.
+6. Use terms that real users would actually search for or click on.
+7. Maintain emotional tone and helpful intent (e.g., encouragement, clarity, action).
+8. Preserve the tone and style of the original phrase—whether it's friendly, formal, playful, or serious.
+9. Keep the **base meaning** of the original phrase intact—do not oversimplify or reinterpret.
+10. NEVER translate text inside curly braces like {this} or {variable} - keep these exactly as they are.`
 
 // Create a rate limiter instance
 const rateLimiter = new ClientRateLimiter(15, 1500) // 15 RPM, 1500 RPD
@@ -80,6 +87,8 @@ export default function TranslationForm() {
   const [showAddApiKeyModal, setShowAddApiKeyModal] = useState(false)
   // Add a refreshTrigger state to force ApiKeySelect to update
   const [apiKeyRefreshTrigger, setApiKeyRefreshTrigger] = useState(0)
+  // Add state for custom translation prompt
+  const [translationPrompt, setTranslationPrompt] = useState(DEFAULT_TRANSLATION_PROMPT)
 
   // Load saved API keys on mount
   useEffect(() => {
@@ -206,6 +215,12 @@ export default function TranslationForm() {
       setWaitingForRateLimit(false)
       setRateLimitInfo(null)
 
+      // Create a prompt with the custom translation prompt
+      const customizedPrompt = translationPrompt
+        .replace("{text}", text)
+        .replace("{sourceLanguage}", sourceLanguage)
+        .replace("{targetLanguage}", targetLanguage)
+
       const response = await fetch("/api/translate", {
         method: "POST",
         headers: {
@@ -216,6 +231,7 @@ export default function TranslationForm() {
           sourceLanguage,
           targetLanguage,
           apiKey,
+          prompt: customizedPrompt, // Send the customized prompt
         }),
         signal: abortControllerRef.current?.signal,
       })
@@ -484,6 +500,7 @@ export default function TranslationForm() {
               size="sm"
               onClick={() => setShowAddApiKeyModal(true)}
               className="h-8 w-8 p-0 text-emerald-600 hover:text-emerald-700 hover:bg-emerald-50"
+              disabled={isLoading}
             >
               <Plus className="h-4 w-4" />
               <span className="sr-only">Add new API key</span>
@@ -527,43 +544,27 @@ export default function TranslationForm() {
         </div>
 
         <div className="grid grid-cols-2 gap-4">
-          <div>
-            <Label htmlFor="sourceLanguage" className="text-sm font-medium">
-              Source Language
-            </Label>
-            <Select value={sourceLanguage} onValueChange={setSourceLanguage}>
-              <SelectTrigger id="sourceLanguage" className="mt-1">
-                <SelectValue placeholder="Select language" />
-              </SelectTrigger>
-              <SelectContent>
-                {LANGUAGES.map((lang) => (
-                  <SelectItem key={`source-${lang.code}`} value={lang.code}>
-                    {lang.name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-
-          <div>
-            <Label htmlFor="targetLanguage" className="text-sm font-medium">
-              Target Language
-            </Label>
-            <Select value={targetLanguage} onValueChange={setTargetLanguage}>
-              <SelectTrigger id="targetLanguage" className="mt-1">
-                <SelectValue placeholder="Select language" />
-              </SelectTrigger>
-              <SelectContent>
-                {LANGUAGES.map((lang) => (
-                  <SelectItem key={`target-${lang.code}`} value={lang.code}>
-                    {lang.name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
+          <LanguageDropdown
+            value={sourceLanguage}
+            onChange={setSourceLanguage}
+            label="Source Language"
+            disabled={isLoading}
+          />
+          <LanguageDropdown
+            value={targetLanguage}
+            onChange={setTargetLanguage}
+            label="Target Language"
+            disabled={isLoading}
+          />
         </div>
       </div>
+
+      {/* Add the prompt editor */}
+      <PromptEditor
+        defaultPrompt={DEFAULT_TRANSLATION_PROMPT}
+        onPromptChange={setTranslationPrompt}
+        disabled={isLoading}
+      />
 
       <div>
         <div className="flex justify-between items-center">
@@ -571,10 +572,22 @@ export default function TranslationForm() {
             JSON Input
           </Label>
           <div>
-            <Label htmlFor="jsonFile" className="text-xs text-emerald-600 hover:text-emerald-700 cursor-pointer">
+            <Label
+              htmlFor="jsonFile"
+              className={`text-xs text-emerald-600 hover:text-emerald-700 cursor-pointer ${
+                isLoading ? "opacity-50 pointer-events-none" : ""
+              }`}
+            >
               Upload JSON file
             </Label>
-            <Input id="jsonFile" type="file" accept=".json" onChange={handleFileUpload} className="hidden" />
+            <Input
+              id="jsonFile"
+              type="file"
+              accept=".json"
+              onChange={handleFileUpload}
+              className="hidden"
+              disabled={isLoading}
+            />
           </div>
         </div>
         <Textarea
@@ -582,6 +595,7 @@ export default function TranslationForm() {
           value={jsonInput}
           onChange={(e) => setJsonInput(e.target.value)}
           className="mt-1 font-mono text-sm h-64"
+          disabled={isLoading}
         />
       </div>
 
@@ -725,9 +739,7 @@ export default function TranslationForm() {
               <span>
                 {completedKeys}/{totalKeys} keys translated ({Math.round(progress)}%)
               </span>
-              <span className="font-semibold">
-                Target language: {LANGUAGES.find((lang) => lang.code === targetLanguage)?.name || targetLanguage}
-              </span>
+              <span className="font-semibold">Target language: {targetLanguage}</span>
             </div>
           </CardContent>
         </Card>

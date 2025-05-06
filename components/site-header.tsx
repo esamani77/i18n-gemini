@@ -5,7 +5,6 @@ import { usePathname } from "next/navigation"
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
 import { Github } from "lucide-react"
-import { LanguageSwitcher } from "@/components/language-switcher"
 
 export function SiteHeader() {
   const pathname = usePathname()
@@ -42,7 +41,6 @@ export function SiteHeader() {
                 <span className="sr-only">GitHub</span>
               </Button>
             </a>
-            <LanguageSwitcher />
           </nav>
         </div>
       </div>
