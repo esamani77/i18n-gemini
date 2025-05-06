@@ -6,6 +6,7 @@ import { ThemeProvider } from "@/components/theme-provider"
 import { Suspense } from "react"
 import { LinkedInButton } from "@/components/linkedin-button"
 import { SiteHeader } from "@/components/site-header"
+import { LanguageLearningBox } from "@/components/language-learning-box"
 // Make sure we're not importing the deleted component
 // The current imports look good, but let's ensure there are no other references to VercelAnalytics
 
@@ -32,6 +33,7 @@ export default function RootLayout({
         <ThemeProvider attribute="class" defaultTheme="light" enableSystem>
           <SiteHeader />
           <Suspense fallback={<div>Loading...</div>}>{children}</Suspense>
+          <LanguageLearningBox />
           <LinkedInButton />
           <Analytics />
           <SpeedInsights />

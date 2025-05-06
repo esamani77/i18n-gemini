@@ -18,6 +18,7 @@ import { AddApiKeyModal } from "@/components/add-api-key-modal"
 import { apiKeyStorage } from "@/lib/api-key-storage"
 import { LanguageDropdown } from "@/components/language-dropdown"
 import { PromptEditor } from "@/components/prompt-editor"
+import { BeautifyJsonButton } from "@/components/beautify-json-button"
 
 const SAMPLE_JSON = {
   homepage: {
@@ -571,7 +572,8 @@ export default function TranslationForm() {
           <Label htmlFor="jsonInput" className="text-sm font-medium">
             JSON Input
           </Label>
-          <div>
+          <div className="flex items-center gap-2">
+            <BeautifyJsonButton jsonInput={jsonInput} onBeautify={setJsonInput} />
             <Label
               htmlFor="jsonFile"
               className={`text-xs text-emerald-600 hover:text-emerald-700 cursor-pointer ${

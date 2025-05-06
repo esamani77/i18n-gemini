@@ -1,3 +1,5 @@
+"use client"
+
 import type React from "react"
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
@@ -6,6 +8,13 @@ import { landingContent } from "@/content/landing-page"
 
 export default function LandingPage() {
   const content = landingContent
+
+  const scrollToTools = () => {
+    const toolsSection = document.getElementById("tools-section")
+    if (toolsSection) {
+      toolsSection.scrollIntoView({ behavior: "smooth" })
+    }
+  }
 
   return (
     <div className="min-h-screen flex flex-col">
@@ -16,11 +25,13 @@ export default function LandingPage() {
             <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold mb-6">{content.hero.title}</h1>
             <p className="text-xl md:text-2xl mb-10 text-emerald-50">{content.hero.subtitle}</p>
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
-              <Link href="/translator">
-                <Button size="lg" className="bg-white text-emerald-700 hover:bg-emerald-50 px-8 py-6 text-lg">
-                  {content.hero.translateButton} <ArrowRight className="ml-2 h-5 w-5" />
-                </Button>
-              </Link>
+              <Button
+                size="lg"
+                className="bg-white text-emerald-700 hover:bg-emerald-50 px-8 py-6 text-lg"
+                onClick={scrollToTools}
+              >
+                {content.hero.translateButton} <ArrowRight className="ml-2 h-5 w-5" />
+              </Button>
               <a href="https://github.com/esamani77" target="_blank" rel="noopener noreferrer">
                 <Button
                   size="lg"
@@ -76,7 +87,7 @@ export default function LandingPage() {
       </section>
 
       {/* Tools Section */}
-      <section className="py-20 bg-white">
+      <section id="tools-section" className="py-20 bg-white">
         <div className="container mx-auto px-4">
           <div className="text-center mb-16">
             <h2 className="text-3xl md:text-4xl font-bold mb-4 text-slate-800">{content.tools.title}</h2>
@@ -202,6 +213,9 @@ export default function LandingPage() {
               </Link>
               <Link href="/translate-article" className="hover:text-white transition-colors">
                 {content.footer.links.articles}
+              </Link>
+              <Link href="/download" className="hover:text-white transition-colors">
+                Download
               </Link>
             </div>
           </div>
