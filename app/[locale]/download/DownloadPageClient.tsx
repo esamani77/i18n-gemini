@@ -1,11 +1,13 @@
-"use client"
+"use client";
 
-import { useEffect } from "react"
-import Image from "next/image"
-import { Button } from "@/components/ui/button"
+import { useEffect } from "react";
+import Image from "next/image";
+import { Button } from "@/components/ui/button";
+import { useTranslations } from "next-intl";
 
 export default function DownloadPageClient() {
-  const memorytoUrl = "https://memoryto.com/en-us/download"
+  const t = useTranslations("download");
+  const memorytoUrl = "https://memoryto.com/en-us/download";
 
   // Function to redirect to Memoryto and track event
   const handleDownloadClick = () => {
@@ -16,30 +18,35 @@ export default function DownloadPageClient() {
         eventCategory: "User Engagement",
         eventAction: "Download App",
         eventLabel: "Memoryto App",
-      })
+      });
     }
 
     // Redirect to Memoryto
-    window.location.href = memorytoUrl
-  }
+    window.location.href = memorytoUrl;
+  };
 
   // Declare dataLayer for TypeScript
   useEffect(() => {
     if (typeof window !== "undefined") {
-      window.dataLayer = window.dataLayer || []
+      window.dataLayer = window.dataLayer || [];
     }
-  }, [])
+  }, []);
 
   return (
     <div className="min-h-screen bg-white flex items-center justify-center p-4">
       <div className="flex flex-col items-center max-w-md w-full text-center px-4 sm:px-0">
-        <h1 className="text-3xl sm:text-4xl font-bold text-gray-900 mb-4 cursor-pointer" onClick={handleDownloadClick}>
-          Download Memoryto
+        <h1
+          className="text-3xl sm:text-4xl font-bold text-gray-900 mb-4 cursor-pointer"
+          onClick={handleDownloadClick}
+        >
+          {t("download")} Memoryto
         </h1>
 
-        <p className="text-base sm:text-lg text-gray-700 mb-6 sm:mb-8 cursor-pointer" onClick={handleDownloadClick}>
-          Study vocabulary, learn new languages, and improve your memory using powerful AI and spaced repetition
-          techniques.
+        <p
+          className="text-base sm:text-lg text-gray-700 mb-6 sm:mb-8 cursor-pointer"
+          onClick={handleDownloadClick}
+        >
+          {t("description")}
         </p>
 
         <div
@@ -59,9 +66,9 @@ export default function DownloadPageClient() {
           className="bg-yellow-500 hover:bg-yellow-600 text-white font-medium px-6 sm:px-8 py-3 rounded-lg text-base sm:text-lg w-full sm:w-auto"
           onClick={handleDownloadClick}
         >
-          Download the App
+          {t("download_button")}
         </Button>
       </div>
     </div>
-  )
+  );
 }

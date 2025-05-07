@@ -19,6 +19,7 @@ import { apiKeyStorage } from "@/lib/api-key-storage"
 import { LanguageDropdown } from "@/components/language-dropdown"
 import { PromptEditor } from "@/components/prompt-editor"
 import { BeautifyJsonButton } from "@/components/beautify-json-button"
+import { useTranslations } from "next-intl";
 
 const SAMPLE_JSON = {
   homepage: {
@@ -65,6 +66,7 @@ UX & SEO Writing Guidelines to follow:
 const rateLimiter = new ClientRateLimiter(15, 1500) // 15 RPM, 1500 RPD
 
 export default function TranslationForm() {
+  const t = useTranslations("translator");  
   const [apiKey, setApiKey] = useState("")
   const [sourceLanguage, setSourceLanguage] = useState("en")
   const [targetLanguage, setTargetLanguage] = useState("es")
@@ -493,7 +495,7 @@ export default function TranslationForm() {
         <div>
           <div className="flex justify-between items-center mb-1">
             <Label htmlFor="apiKey" className="text-sm font-medium">
-              Gemini API Key
+              {t("api_key")}
             </Label>
             <Button
               type="button"
@@ -504,7 +506,7 @@ export default function TranslationForm() {
               disabled={isLoading}
             >
               <Plus className="h-4 w-4" />
-              <span className="sr-only">Add new API key</span>
+              <span className="sr-only">{t("add_new_api_key")}</span>
             </Button>
           </div>
           <div className="mt-1">
@@ -516,7 +518,7 @@ export default function TranslationForm() {
             />
           </div>
           <div className="mt-1 text-xs text-slate-500 flex items-center">
-            <span>Get your API key from </span>
+            <span>{t("get_api_key")}</span>
             <a
               href="https://aistudio.google.com/app/apikey"
               target="_blank"
@@ -626,9 +628,9 @@ export default function TranslationForm() {
       {showProgress && (
         <div className="space-y-2">
           <div className="flex justify-between text-sm text-slate-500">
-            <span>Processing translation</span>
+            <span>{t("processing_translation")}</span>
             <span>
-              {completedKeys}/{totalKeys} keys ({Math.round(progress)}%)
+              {completedKeys}/{totalKeys} {t("keys")} ({Math.round(progress)}%)
             </span>
           </div>
           <Progress value={progress} className="h-2" />
@@ -645,10 +647,10 @@ export default function TranslationForm() {
           {currentTranslation && (
             <div className="bg-emerald-50 p-2 rounded border border-emerald-100 mt-2">
               <p className="text-xs text-emerald-700">
-                <span className="font-semibold">Currently translating:</span> {currentTranslation.key}
+                <span className="font-semibold">{t("currently_translating")}:</span> {currentTranslation.key}
               </p>
               <p className="text-xs text-emerald-600 mt-1">
-                <span className="font-semibold">Result:</span> {currentTranslation.value}
+                <span className="font-semibold">{t("result")}:</span> {currentTranslation.value}
               </p>
             </div>
           )}
@@ -725,7 +727,7 @@ export default function TranslationForm() {
                     <polyline points="7 10 12 15 17 10" />
                     <line x1="12" y1="15" x2="12" y2="3" />
                   </svg>
-                  Download
+                  {t("download")}
                 </Button>
               </div>
             </div>
@@ -741,7 +743,7 @@ export default function TranslationForm() {
               <span>
                 {completedKeys}/{totalKeys} keys translated ({Math.round(progress)}%)
               </span>
-              <span className="font-semibold">Target language: {targetLanguage}</span>
+              <span className="font-semibold">{t("target_language")}: {targetLanguage}</span>
             </div>
           </CardContent>
         </Card>

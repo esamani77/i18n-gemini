@@ -17,7 +17,7 @@ import { AddApiKeyModal } from "@/components/add-api-key-modal"
 import { apiKeyStorage } from "@/lib/api-key-storage"
 import { LanguageDropdown } from "@/components/language-dropdown"
 import { PromptEditor } from "@/components/prompt-editor"
-
+import { useTranslations } from "next-intl";
 const SAMPLE_ARTICLE = `# The Future of Artificial Intelligence
 
 Artificial Intelligence (AI) has made significant strides in recent years, transforming various industries and aspects of daily life. From healthcare to finance, AI-powered solutions are enhancing efficiency, accuracy, and decision-making processes.
@@ -64,6 +64,7 @@ Please provide ONLY the translated article with the same formatting as the origi
 const rateLimiter = new ClientRateLimiter(15, 1500) // 15 RPM, 1500 RPD
 
 export function ArticleTranslationForm() {
+  const t = useTranslations("translate-article");
   const [apiKey, setApiKey] = useState("")
   const [sourceLanguage, setSourceLanguage] = useState("en")
   const [targetLanguage, setTargetLanguage] = useState("es")
@@ -110,7 +111,7 @@ export function ArticleTranslationForm() {
       } catch (error) {
         setStatus({
           type: "error",
-          message: "Error reading file. Please try again.",
+          message: t("error_reading_file"),
         })
       }
     }
@@ -204,7 +205,7 @@ export function ArticleTranslationForm() {
     if (!articleInput.trim()) {
       setStatus({
         type: "error",
-        message: "Please enter some text to translate.",
+        message: t("please_enter_text_to_translate"),
       })
       return
     }
@@ -212,7 +213,7 @@ export function ArticleTranslationForm() {
     if (!apiKey) {
       setStatus({
         type: "error",
-        message: "Gemini API key is required",
+        message: t("gemini_api_key_required"),
       })
       return
     }
@@ -238,14 +239,14 @@ export function ArticleTranslationForm() {
       setIsTranslationComplete(true)
       setStatus({
         type: "success",
-        message: "Translation completed successfully!",
+        message: t("translation_completed_successfully"),
       })
     } catch (error: any) {
       if (error.name !== "AbortError" && error.message !== "Translation cancelled") {
         console.error("Translation process error:", error)
         setStatus({
           type: "error",
-          message: `Error: ${error.message || "Failed to translate"}`,
+          message: t("error_translating"),
         })
       }
     } finally {
@@ -266,7 +267,7 @@ export function ArticleTranslationForm() {
     setRateLimitInfo(null)
     setStatus({
       type: "error",
-      message: "Translation cancelled",
+      message: t("translation_cancelled"),
     })
   }
 
@@ -301,7 +302,7 @@ export function ArticleTranslationForm() {
         <div>
           <div className="flex justify-between items-center mb-1">
             <Label htmlFor="apiKey" className="text-sm font-medium">
-              Gemini API Key
+              {t("gemini_api_key")}
             </Label>
             <Button
               type="button"
@@ -312,7 +313,7 @@ export function ArticleTranslationForm() {
               disabled={isLoading}
             >
               <Plus className="h-4 w-4" />
-              <span className="sr-only">Add new API key</span>
+              <span className="sr-only">{t("add_new_api_key")}</span>
             </Button>
           </div>
           <div className="mt-1">
@@ -324,7 +325,7 @@ export function ArticleTranslationForm() {
             />
           </div>
           <div className="mt-1 text-xs text-slate-500 flex items-center">
-            <span>Get your API key from </span>
+            <span>{t("get_api_key_from")}</span>
             <a
               href="https://aistudio.google.com/app/apikey"
               target="_blank"
@@ -374,7 +375,7 @@ export function ArticleTranslationForm() {
       <div>
         <div className="flex justify-between items-center">
           <Label htmlFor="articleInput" className="text-sm font-medium">
-            Article Text
+            {t("article_text")}
           </Label>
           <div>
             <Label
@@ -383,7 +384,7 @@ export function ArticleTranslationForm() {
                 isLoading ? "opacity-50 pointer-events-none" : ""
               }`}
             >
-              Upload text file
+              {t("upload_text_file")}
             </Label>
             <Input
               id="articleFile"
@@ -401,7 +402,7 @@ export function ArticleTranslationForm() {
           onChange={(e) => setArticleInput(e.target.value)}
           className="mt-1 font-mono text-sm h-64"
           disabled={isLoading}
-          placeholder="Enter your article text here..."
+          placeholder={t("enter_article_text_here")}
         />
       </div>
 
@@ -410,18 +411,18 @@ export function ArticleTranslationForm() {
           {isLoading ? (
             <>
               <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-              {waitingForRateLimit ? "Waiting for rate limit..." : "Translating..."}
+              {waitingForRateLimit ? t("waiting_for_rate_limit") : t("translating")}
             </>
           ) : (
             <>
               <FileText className="mr-2 h-4 w-4" />
-              Translate Article
+              {t("translate_article")}
             </>
           )}
         </Button>
         {isLoading && (
           <Button onClick={handleCancel} variant="outline" className="border-red-300 text-red-600 hover:bg-red-50">
-            Cancel
+            {t("cancel")}
           </Button>
         )}
       </div>
@@ -429,7 +430,7 @@ export function ArticleTranslationForm() {
       {showProgress && (
         <div className="space-y-2">
           <div className="flex justify-between text-sm text-slate-500">
-            <span>Processing translation</span>
+            <span>{t("processing_translation")}</span>
             <span>{Math.round(progress)}%</span>
           </div>
           <Progress value={progress} className="h-2" />
@@ -475,7 +476,7 @@ export function ArticleTranslationForm() {
                     navigator.clipboard.writeText(translatedArticle)
                     setStatus({
                       type: "success",
-                      message: "Copied to clipboard!",
+                      message: t("copied_to_clipboard"),
                     })
                   }}
                   className="bg-blue-600 hover:bg-blue-700 text-white"
@@ -496,7 +497,7 @@ export function ArticleTranslationForm() {
                     <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
                     <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
                   </svg>
-                  Copy
+                  {t("copy")}
                 </Button>
                 <Button onClick={handleDownload} className="bg-blue-600 hover:bg-blue-700 text-white" size="sm">
                   <svg
@@ -515,7 +516,7 @@ export function ArticleTranslationForm() {
                     <polyline points="7 10 12 15 17 10" />
                     <line x1="12" y1="15" x2="12" y2="3" />
                   </svg>
-                  Download
+                  {t("download")}
                 </Button>
               </div>
             </div>
@@ -528,8 +529,8 @@ export function ArticleTranslationForm() {
               />
             </div>
             <div className="mt-3 text-xs text-slate-500 flex items-center justify-between">
-              <span>Translation complete</span>
-              <span className="font-semibold">Target language: {targetLanguage}</span>
+              <span>{t("translation_complete")}</span>
+              <span className="font-semibold">{t("target_language")}: {targetLanguage}</span>
             </div>
           </CardContent>
         </Card>

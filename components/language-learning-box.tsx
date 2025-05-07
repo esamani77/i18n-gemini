@@ -4,8 +4,9 @@ import { useState, useEffect } from "react"
 import { usePathname, useRouter } from "next/navigation"
 import Image from "next/image"
 import { Button } from "@/components/ui/button"
-
+import { useTranslations } from "next-intl";
 export function LanguageLearningBox() {
+  const t = useTranslations("LanguageLearningBox");
   const [isVisible, setIsVisible] = useState(false)
   const pathname = usePathname()
   const router = useRouter()
@@ -59,15 +60,17 @@ export function LanguageLearningBox() {
           />
         </div>
         <div className="flex-1 min-w-0">
-          <h3 className="font-bold text-base sm:text-lg text-gray-800 truncate">Want to learn a new language?</h3>
+          <h3 className="font-bold text-base sm:text-lg text-gray-800 truncate">
+            {t("title")}
+          </h3>
           <p className="text-xs sm:text-sm text-gray-600 mb-2 line-clamp-2">
-            Try Memoryto's AI-powered spaced repetition system!
+            {t("subtitle")}
           </p>
           <Button
             className="bg-yellow-500 hover:bg-yellow-600 text-white w-full text-xs sm:text-sm py-1 h-auto"
             onClick={handleClick}
           >
-            Click here
+            {t("button")}
           </Button>
         </div>
         <button
@@ -77,7 +80,7 @@ export function LanguageLearningBox() {
           <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
           </svg>
-          <span className="sr-only">Close</span>
+          <span className="sr-only">{t("close")}</span>
         </button>
       </div>
     </div>

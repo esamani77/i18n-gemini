@@ -18,7 +18,7 @@ import { apiKeyStorage } from "@/lib/api-key-storage"
 import { LanguageDropdown } from "@/components/language-dropdown"
 import { PromptEditor } from "@/components/prompt-editor"
 import { BeautifyJsonButton } from "@/components/beautify-json-button"
-
+import { useTranslations } from "next-intl";
 const SAMPLE_SOURCE_JSON = {
   homepage: {
     title: "Welcome to our website",
@@ -71,6 +71,7 @@ Provide ONLY the improved translation with no additional text, explanations, or 
 const rateLimiter = new ClientRateLimiter(15, 1500) // 15 RPM, 1500 RPD
 
 export function ImproveJsonForm() {
+  const t = useTranslations("improve-json");
   const [apiKey, setApiKey] = useState("")
   const [sourceLanguage, setSourceLanguage] = useState("en")
   const [targetLanguage, setTargetLanguage] = useState("es")
@@ -130,7 +131,7 @@ export function ImproveJsonForm() {
       } catch (error) {
         setStatus({
           type: "error",
-          message: "Invalid JSON file. Please upload a valid JSON file.",
+          message: t("invalid_json_file"),
         })
       }
     }
@@ -151,7 +152,7 @@ export function ImproveJsonForm() {
       } catch (error) {
         setStatus({
           type: "error",
-          message: "Invalid JSON file. Please upload a valid JSON file.",
+          message: t("invalid_json_file"),
         })
       }
     }
@@ -337,7 +338,7 @@ export function ImproveJsonForm() {
     } catch (error) {
       setStatus({
         type: "error",
-        message: "Invalid JSON input. Please check your JSON format.",
+        message: t("invalid_json_input"),
       })
       return
     }
@@ -345,7 +346,7 @@ export function ImproveJsonForm() {
     if (!apiKey) {
       setStatus({
         type: "error",
-        message: "Gemini API key is required",
+        message: t("gemini_api_key_required"),
       })
       return
     }
@@ -387,7 +388,7 @@ export function ImproveJsonForm() {
         setIsImprovementComplete(true)
         setStatus({
           type: "success",
-          message: "No translations need improvement! All translations are already concise.",
+          message: t("no_translations_need_improvement"),
         })
         setIsLoading(false)
         return
@@ -486,14 +487,14 @@ export function ImproveJsonForm() {
       setIsImprovementComplete(true)
       setStatus({
         type: "success",
-        message: `Improvement completed successfully! Optimized ${keysToProcess.length} translations.`,
+        message: t("improvement_completed"),
       })
     } catch (error: any) {
       if (error.name !== "AbortError" && error.message !== "Improvement cancelled") {
         console.error("Improvement process error:", error)
         setStatus({
           type: "error",
-          message: `Error: ${error.message || "Failed to improve translations"}`,
+          message: t("error_improving_translations"),
         })
       }
     } finally {
@@ -620,7 +621,7 @@ export function ImproveJsonForm() {
       <div className="bg-slate-50 p-4 rounded-lg border border-slate-200">
         <div className="flex justify-between items-center mb-2">
           <Label htmlFor="lengthThreshold" className="text-sm font-medium">
-            Length Threshold (%)
+            {t("length_threshold")}
           </Label>
           <span className="text-sm font-medium text-purple-600">{lengthThreshold}%</span>
         </div>
@@ -640,7 +641,7 @@ export function ImproveJsonForm() {
           <span className="text-xs text-slate-500">200%</span>
         </div>
         <p className="text-xs text-slate-500 mt-2">
-          Translations longer than {lengthThreshold}% of the source text will be improved for conciseness.
+          {t("length_threshold_description", { lengthThreshold })}
         </p>
       </div>
 
@@ -807,7 +808,7 @@ export function ImproveJsonForm() {
                     navigator.clipboard.writeText(improvedJson)
                     setStatus({
                       type: "success",
-                      message: "Copied to clipboard!",
+                      message: t("copied_to_clipboard"),
                     })
                   }}
                   className="bg-blue-600 hover:bg-blue-700 text-white"
@@ -863,7 +864,7 @@ export function ImproveJsonForm() {
               <span>
                 {completedKeys}/{totalKeys} keys processed ({Math.round(progress)}%)
               </span>
-              <span className="font-medium text-purple-600">{keysToImprove} translations improved for conciseness</span>
+              <span className="font-medium text-purple-600">{t("translations_improved_for_conciseness", { keysToImprove })}</span>
             </div>
           </CardContent>
         </Card>

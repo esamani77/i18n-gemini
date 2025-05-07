@@ -7,6 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { AlertCircle, Check, Edit, Info } from "lucide-react"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { cn } from "@/lib/utils"
+import { useTranslations } from "next-intl";
 
 interface PromptEditorProps {
   defaultPrompt: string
@@ -18,6 +19,7 @@ export function PromptEditor({ defaultPrompt, onPromptChange, disabled = false }
   const [isEditing, setIsEditing] = useState(false)
   const [prompt, setPrompt] = useState(defaultPrompt)
   const [showResetConfirm, setShowResetConfirm] = useState(false)
+  const t = useTranslations("translator");
 
   const handleSave = () => {
     onPromptChange(prompt)
@@ -35,11 +37,11 @@ export function PromptEditor({ defaultPrompt, onPromptChange, disabled = false }
     <Card className={cn("border-slate-200", disabled && "opacity-75")}>
       <CardHeader className="pb-3">
         <div className="flex justify-between items-center">
-          <CardTitle className="text-lg">Translation Prompt</CardTitle>
+          <CardTitle className="text-lg">{t("translation_prompt")}</CardTitle>
           {!isEditing ? (
             <Button variant="outline" size="sm" onClick={() => setIsEditing(true)} disabled={disabled} className="h-8">
               <Edit className="h-3.5 w-3.5 mr-1" />
-              Customize
+              {t("customize")}
             </Button>
           ) : (
             <div className="flex gap-2">
@@ -52,7 +54,7 @@ export function PromptEditor({ defaultPrompt, onPromptChange, disabled = false }
                 }}
                 className="h-8 border-slate-200"
               >
-                Cancel
+                {t("cancel")}
               </Button>
               <Button
                 variant="default"
@@ -61,12 +63,12 @@ export function PromptEditor({ defaultPrompt, onPromptChange, disabled = false }
                 className="h-8 bg-emerald-600 hover:bg-emerald-700"
               >
                 <Check className="h-3.5 w-3.5 mr-1" />
-                Save
+                {t("save")}
               </Button>
             </div>
           )}
         </div>
-        <CardDescription>Customize how the AI translates your content. Advanced users only.</CardDescription>
+        <CardDescription>{t("prompt_description")}</CardDescription>
       </CardHeader>
       <CardContent>
         {isEditing ? (
@@ -97,10 +99,10 @@ export function PromptEditor({ defaultPrompt, onPromptChange, disabled = false }
             </div>
 
             {showResetConfirm && (
-              <Alert variant="warning" className="bg-amber-50 border-amber-200 text-amber-800">
+              <Alert variant="default" className="bg-amber-50 border-amber-200 text-amber-800">
                 <AlertCircle className="h-4 w-4" />
                 <AlertDescription className="flex justify-between items-center">
-                  <span>Are you sure you want to reset to the default prompt?</span>
+                  <span>{t("reset_prompt_confirm")}</span>
                   <div className="flex gap-2">
                     <Button
                       variant="outline"
@@ -108,7 +110,7 @@ export function PromptEditor({ defaultPrompt, onPromptChange, disabled = false }
                       onClick={() => setShowResetConfirm(false)}
                       className="h-7 border-amber-300 hover:bg-amber-100"
                     >
-                      Cancel
+                      {t("cancel")}
                     </Button>
                     <Button
                       variant="default"
@@ -116,7 +118,7 @@ export function PromptEditor({ defaultPrompt, onPromptChange, disabled = false }
                       onClick={handleReset}
                       className="h-7 bg-amber-600 hover:bg-amber-700"
                     >
-                      Reset
+                      {t("reset")}
                     </Button>
                   </div>
                 </AlertDescription>
