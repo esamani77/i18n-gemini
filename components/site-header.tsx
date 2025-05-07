@@ -22,6 +22,7 @@ export function SiteHeader() {
         <div className="flex items-center">
           <Link href="/" className="flex items-center space-x-2">
             <Image src="/favicon.png" alt="AI Translate Bot" width={32} height={32} className="rounded-md" />
+            <span alt="AI Translate Bot" width={32} height={32} className="rounded-md" />
             <span className="font-bold text-xl hidden sm:inline">AI Translate Bot</span>
           </Link>
         </div>
@@ -31,7 +32,7 @@ export function SiteHeader() {
           <Link href="/">
             <Button
               variant={pathname === "/" ? "default" : "ghost"}
-              className={cn(pathname === "/" ? "bg-emerald-600 hover:bg-emerald-700 text-white" : "")}
+              className={cn(pathname === "/" ? "bg-[#6366F1] hover:bg-[#4F46E5] text-white" : "")}
             >
               Home
             </Button>
@@ -39,7 +40,7 @@ export function SiteHeader() {
           <Link href="/translator">
             <Button
               variant={pathname === "/translator" ? "default" : "ghost"}
-              className={cn(pathname === "/translator" ? "bg-emerald-600 hover:bg-emerald-700 text-white" : "")}
+              className={cn(pathname === "/translator" ? "bg-[#6366F1] hover:bg-[#4F46E5] text-white" : "")}
             >
               Translator
             </Button>
@@ -48,7 +49,7 @@ export function SiteHeader() {
             <Button
               variant={pathname === "/improve-json" ? "default" : "ghost"}
               className={cn(
-                pathname === "/improve-json" ? "bg-purple-600 hover:bg-purple-700 text-white" : "",
+                pathname === "/improve-json" ? "bg-[#9747FF] hover:bg-[#8B5CF6] text-white" : "",
                 "flex items-center",
               )}
             >
@@ -60,7 +61,7 @@ export function SiteHeader() {
             <Button
               variant={pathname === "/translate-article" ? "default" : "ghost"}
               className={cn(
-                pathname === "/translate-article" ? "bg-blue-600 hover:bg-blue-700 text-white" : "",
+                pathname === "/translate-article" ? "bg-[#2563EB] hover:bg-[#1D4ED8] text-white" : "",
                 "flex items-center",
               )}
             >
@@ -92,7 +93,7 @@ export function SiteHeader() {
               <Button
                 variant={pathname === "/" ? "default" : "ghost"}
                 className={cn(
-                  pathname === "/" ? "bg-emerald-600 hover:bg-emerald-700 text-white" : "",
+                  pathname === "/" ? "bg-[#6366F1] hover:bg-[#4F46E5] text-white" : "",
                   "w-full justify-start",
                 )}
               >
@@ -103,7 +104,7 @@ export function SiteHeader() {
               <Button
                 variant={pathname === "/translator" ? "default" : "ghost"}
                 className={cn(
-                  pathname === "/translator" ? "bg-emerald-600 hover:bg-emerald-700 text-white" : "",
+                  pathname === "/translator" ? "bg-[#6366F1] hover:bg-[#4F46E5] text-white" : "",
                   "w-full justify-start",
                 )}
               >
@@ -114,7 +115,7 @@ export function SiteHeader() {
               <Button
                 variant={pathname === "/improve-json" ? "default" : "ghost"}
                 className={cn(
-                  pathname === "/improve-json" ? "bg-purple-600 hover:bg-purple-700 text-white" : "",
+                  pathname === "/improve-json" ? "bg-[#9747FF] hover:bg-[#8B5CF6] text-white" : "",
                   "w-full justify-start flex items-center",
                 )}
               >
@@ -126,7 +127,7 @@ export function SiteHeader() {
               <Button
                 variant={pathname === "/translate-article" ? "default" : "ghost"}
                 className={cn(
-                  pathname === "/translate-article" ? "bg-blue-600 hover:bg-blue-700 text-white" : "",
+                  pathname === "/translate-article" ? "bg-[#2563EB] hover:bg-[#1D4ED8] text-white" : "",
                   "w-full justify-start flex items-center",
                 )}
               >
