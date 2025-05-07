@@ -9,8 +9,14 @@ type LangCode =
   | "hi"
   | "es"
   | "fr"
+  | "zh"
   | "tr"
+  | "kr"
+  | "ku"
+  | "nl"
+  | "it"
   | "ja";
+
 type Lang = {
   name: string;
   spoken: string;
@@ -67,7 +73,33 @@ export const langs: Record<LangCode, Lang> = {
     spoken: "日本語",
     flag: "🇯🇵",
   },
+  zh: {
+    name: "Chinese",
+    spoken: "中文",
+    flag: "🇨🇳",
+  },
+  kr: {
+    name: "Korean",
+    spoken: "한국어",
+    flag: "🇰🇷",
+  },
+  ku: {
+    name: "Kurdish",
+    spoken: "Kurdî",
+    flag: "🇰🇷",
+  },
+  nl: {
+    name: "Dutch",
+    spoken: "Nederlands",
+    flag: "🇳🇱",
+  },
+  it: {
+    name: "Italian",
+    spoken: "italiano",
+    flag: "🇮🇹",
+  },
 };
+
 export const routing = defineRouting({
   // A list of all locales that are supported
   locales: [
@@ -83,6 +115,11 @@ export const routing = defineRouting({
     "fa",
     "hi",
     "ja",
+    "zh",
+    "kr",
+    "ku",
+    "nl",
+    "it",
   ],
 
   // Used when no locale matches
