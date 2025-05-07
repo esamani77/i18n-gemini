@@ -69,7 +69,8 @@
     "os": "latest",
     "fs": "latest",
     "@vercel/analytics": "latest",
-    "@vercel/speed-insights": "latest"
+    "@vercel/speed-insights": "latest",
+    "@next/third-parties": "latest"
   },
   "devDependencies": {
     "@types/node": "^22",

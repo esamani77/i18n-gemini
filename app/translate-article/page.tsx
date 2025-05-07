@@ -1,7 +1,16 @@
+import type { Metadata } from "next"
+import { getPageMetadata } from "@/lib/metadata"
 import { ArticleTranslationForm } from "@/components/article-translation-form"
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
 import { ArrowLeft } from "lucide-react"
+
+// Export metadata for this page
+export const metadata: Metadata = getPageMetadata(
+  "/translate-article",
+  "Article Translator - AI Translate Bot",
+  "Translate articles, blog posts, and long-form content between languages",
+)
 
 export default function TranslateArticlePage() {
   return (
@@ -38,7 +47,7 @@ export default function TranslateArticlePage() {
         </div>
 
         <footer className="mt-8 text-center text-sm text-slate-500">
-          <p>© {new Date().getFullYear()} Translation API Client. All rights reserved.</p>
+          <p>© {new Date().getFullYear()} AI Translate Bot. All rights reserved.</p>
         </footer>
       </div>
     </main>

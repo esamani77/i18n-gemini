@@ -7,20 +7,14 @@ import { Suspense } from "react"
 import { LinkedInButton } from "@/components/linkedin-button"
 import { SiteHeader } from "@/components/site-header"
 import { LanguageLearningBox } from "@/components/language-learning-box"
-// Make sure we're not importing the deleted component
-// The current imports look good, but let's ensure there are no other references to VercelAnalytics
-
-// The layout looks correct with the official Vercel components:
 import { Analytics } from "@vercel/analytics/next"
 import { SpeedInsights } from "@vercel/speed-insights/next"
+import { GoogleTagManager } from "@next/third-parties/google"
+import defaultMetadata from "@/lib/metadata"
 
 const inter = Inter({ subsets: ["latin"] })
 
-export const metadata: Metadata = {
-  title: "Translation API Client",
-  description: "A modern client for translating JSON data between multiple languages",
-    generator: 'v0.dev'
-}
+export const metadata: Metadata = defaultMetadata
 
 export default function RootLayout({
   children,
@@ -30,6 +24,14 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body className={inter.className}>
+        <noscript>
+          <iframe
+            src="https://www.googletagmanager.com/ns.html?id=GTM-PHV5H77C"
+            height="0"
+            width="0"
+            style={{ display: "none", visibility: "hidden" }}
+          />
+        </noscript>
         <ThemeProvider attribute="class" defaultTheme="light" enableSystem>
           <SiteHeader />
           <Suspense fallback={<div>Loading...</div>}>{children}</Suspense>
@@ -38,6 +40,7 @@ export default function RootLayout({
           <Analytics />
           <SpeedInsights />
         </ThemeProvider>
+        <GoogleTagManager gtmId="GTM-PHV5H77C" />
       </body>
     </html>
   )
